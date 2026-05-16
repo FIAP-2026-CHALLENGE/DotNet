@@ -53,4 +53,47 @@ public static class InMemoryDatabase
             Rga = "RGA987654"
         }
     };
+
+    public static List<CareEvent> CareEvents { get; } = new()
+    {
+        new CareEvent
+        {
+            Id = 1,
+            PetId = 1,
+            Type = "VACCINE",
+            Title = "Vacina anual",
+            Description = "Aplicação da vacina anual do Thor.",
+            ScheduledDate = new DateTime(2026, 6, 10),
+            CompletedDate = null,
+            Status = "PENDING",
+            Priority = "HIGH",
+            Notes = "Tutor deve levar carteira de vacinação."
+        },
+        new CareEvent
+        {
+            Id = 2,
+            PetId = 1,
+            Type = "CHECKUP",
+            Title = "Check-up respiratório",
+            Description = "Avaliação preventiva por conta da raça Pug.",
+            ScheduledDate = new DateTime(2026, 5, 1),
+            CompletedDate = null,
+            Status = "OVERDUE",
+            Priority = "CRITICAL",
+            Notes = "Pugs podem exigir atenção respiratória preventiva."
+        },
+        new CareEvent
+        {
+            Id = 3,
+            PetId = 2,
+            Type = "MEDICATION",
+            Title = "Controle de medicação",
+            Description = "Acompanhamento de medicação prescrita para Luna.",
+            ScheduledDate = new DateTime(2026, 5, 20),
+            CompletedDate = null,
+            Status = "PENDING",
+            Priority = "MEDIUM",
+            Notes = "Confirmar adesão ao tratamento com o tutor."
+        }
+    };
 }
