@@ -7,6 +7,7 @@ namespace DotNet.Api.Controllers;
 
 [ApiController]
 [Route("api/tutors")]
+[Produces("application/json")]
 public class TutorsController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -17,6 +18,7 @@ public class TutorsController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<Tutor>), 200)]
     public async Task<ActionResult<IEnumerable<Tutor>>> GetAll()
     {
         var tutors = await _context.Tutors
@@ -27,6 +29,8 @@ public class TutorsController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(Tutor), 200)]
+    [ProducesResponseType(404)]
     public async Task<ActionResult<Tutor>> GetById(int id)
     {
         var tutor = await _context.Tutors
@@ -42,6 +46,8 @@ public class TutorsController : ControllerBase
     }
 
     [HttpGet("cpf/{cpf}")]
+    [ProducesResponseType(typeof(Tutor), 200)]
+    [ProducesResponseType(404)]
     public async Task<ActionResult<Tutor>> GetByCpf(string cpf)
     {
         var tutor = await _context.Tutors
@@ -57,6 +63,8 @@ public class TutorsController : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(Tutor), 201)]
+    [ProducesResponseType(400)]
     public async Task<ActionResult<Tutor>> Create(Tutor tutor)
     {
         if (string.IsNullOrWhiteSpace(tutor.Name) ||
@@ -86,6 +94,9 @@ public class TutorsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> Update(int id, Tutor updatedTutor)
     {
         var tutor = await _context.Tutors
@@ -124,6 +135,8 @@ public class TutorsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> Delete(int id)
     {
         var tutor = await _context.Tutors

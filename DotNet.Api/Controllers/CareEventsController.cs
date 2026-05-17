@@ -7,6 +7,7 @@ namespace DotNet.Api.Controllers;
 
 [ApiController]
 [Route("api/care-events")]
+[Produces("application/json")]
 public class CareEventsController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -46,6 +47,7 @@ public class CareEventsController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<CareEvent>), 200)]
     public async Task<ActionResult<IEnumerable<CareEvent>>> GetAll()
     {
         var events = await _context.CareEvents
@@ -56,6 +58,8 @@ public class CareEventsController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(CareEvent), 200)]
+    [ProducesResponseType(404)]
     public async Task<ActionResult<CareEvent>> GetById(int id)
     {
         var careEvent = await _context.CareEvents
@@ -71,6 +75,8 @@ public class CareEventsController : ControllerBase
     }
 
     [HttpGet("pet/{petId:int}")]
+    [ProducesResponseType(typeof(IEnumerable<CareEvent>), 200)]
+    [ProducesResponseType(404)]
     public async Task<ActionResult<IEnumerable<CareEvent>>> GetByPetId(int petId)
     {
         var petExists = await _context.Pets
@@ -90,6 +96,8 @@ public class CareEventsController : ControllerBase
     }
 
     [HttpGet("status/{status}")]
+    [ProducesResponseType(typeof(IEnumerable<CareEvent>), 200)]
+    [ProducesResponseType(400)]
     public async Task<ActionResult<IEnumerable<CareEvent>>> GetByStatus(string status)
     {
         var normalizedStatus = status.ToUpper();
@@ -108,6 +116,8 @@ public class CareEventsController : ControllerBase
     }
 
     [HttpGet("type/{type}")]
+    [ProducesResponseType(typeof(IEnumerable<CareEvent>), 200)]
+    [ProducesResponseType(400)]
     public async Task<ActionResult<IEnumerable<CareEvent>>> GetByType(string type)
     {
         var normalizedType = type.ToUpper();
@@ -126,6 +136,9 @@ public class CareEventsController : ControllerBase
     }
 
     [HttpGet("pet/{petId:int}/status/{status}")]
+    [ProducesResponseType(typeof(IEnumerable<CareEvent>), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
     public async Task<ActionResult<IEnumerable<CareEvent>>> GetByPetIdAndStatus(int petId, string status)
     {
         var petExists = await _context.Pets
@@ -152,6 +165,7 @@ public class CareEventsController : ControllerBase
     }
 
     [HttpGet("overdue")]
+    [ProducesResponseType(typeof(IEnumerable<CareEvent>), 200)]
     public async Task<ActionResult<IEnumerable<CareEvent>>> GetOverdue()
     {
         var today = DateTime.UtcNow.Date;
@@ -169,6 +183,8 @@ public class CareEventsController : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(CareEvent), 201)]
+    [ProducesResponseType(400)]
     public async Task<ActionResult<CareEvent>> Create(CareEvent careEvent)
     {
         var petExists = await _context.Pets
@@ -200,6 +216,9 @@ public class CareEventsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> Update(int id, CareEvent updatedCareEvent)
     {
         var careEvent = await _context.CareEvents
@@ -242,6 +261,9 @@ public class CareEventsController : ControllerBase
     }
 
     [HttpPatch("{id:int}/complete")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> Complete(int id)
     {
         var careEvent = await _context.CareEvents
@@ -266,6 +288,8 @@ public class CareEventsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> Delete(int id)
     {
         var careEvent = await _context.CareEvents

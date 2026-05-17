@@ -119,6 +119,12 @@ public class AppDbContext : DbContext
                 .HasColumnType("NUMBER(1)")
                 .HasConversion<int>()
                 .IsRequired();
+
+            // FK: Pet → Tutor
+            entity.HasOne<Tutor>()
+                .WithMany()
+                .HasForeignKey(p => p.TutorId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<CareEvent>(entity =>
@@ -178,6 +184,12 @@ public class AppDbContext : DbContext
                 .HasColumnType("NUMBER(1)")
                 .HasConversion<int>()
                 .IsRequired();
+
+            // FK: CareEvent → Pet
+            entity.HasOne<Pet>()
+                .WithMany()
+                .HasForeignKey(e => e.PetId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

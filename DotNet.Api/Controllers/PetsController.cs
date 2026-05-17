@@ -7,6 +7,7 @@ namespace DotNet.Api.Controllers;
 
 [ApiController]
 [Route("api/pets")]
+[Produces("application/json")]
 public class PetsController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -23,6 +24,7 @@ public class PetsController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<Pet>), 200)]
     public async Task<ActionResult<IEnumerable<Pet>>> GetAll()
     {
         var pets = await _context.Pets
@@ -33,6 +35,8 @@ public class PetsController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(Pet), 200)]
+    [ProducesResponseType(404)]
     public async Task<ActionResult<Pet>> GetById(int id)
     {
         var pet = await _context.Pets
@@ -48,6 +52,8 @@ public class PetsController : ControllerBase
     }
 
     [HttpGet("tutor/{tutorId:int}")]
+    [ProducesResponseType(typeof(IEnumerable<Pet>), 200)]
+    [ProducesResponseType(404)]
     public async Task<ActionResult<IEnumerable<Pet>>> GetByTutorId(int tutorId)
     {
         var tutorExists = await _context.Tutors
@@ -67,6 +73,7 @@ public class PetsController : ControllerBase
     }
 
     [HttpGet("species/{species}")]
+    [ProducesResponseType(typeof(IEnumerable<Pet>), 200)]
     public async Task<ActionResult<IEnumerable<Pet>>> GetBySpecies(string species)
     {
         var normalizedSpecies = species.ToUpper();
@@ -80,6 +87,7 @@ public class PetsController : ControllerBase
     }
 
     [HttpGet("breed/{breed}")]
+    [ProducesResponseType(typeof(IEnumerable<Pet>), 200)]
     public async Task<ActionResult<IEnumerable<Pet>>> GetByBreed(string breed)
     {
         var normalizedBreed = breed.ToLower();
@@ -93,6 +101,8 @@ public class PetsController : ControllerBase
     }
 
     [HttpGet("rga/{rga}")]
+    [ProducesResponseType(typeof(Pet), 200)]
+    [ProducesResponseType(404)]
     public async Task<ActionResult<Pet>> GetByRga(string rga)
     {
         var pet = await _context.Pets
@@ -108,6 +118,8 @@ public class PetsController : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(Pet), 201)]
+    [ProducesResponseType(400)]
     public async Task<ActionResult<Pet>> Create(Pet pet)
     {
         var tutorExists = await _context.Tutors
@@ -146,6 +158,9 @@ public class PetsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> Update(int id, Pet updatedPet)
     {
         var pet = await _context.Pets
@@ -196,6 +211,8 @@ public class PetsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> Delete(int id)
     {
         var pet = await _context.Pets

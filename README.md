@@ -318,7 +318,7 @@ Essa abordagem evita expor credenciais no GitHub.
 ### 9.2. Clonar o repositório
 
 ```bash
-git clone <URL_DO_REPOSITORIO>
+git clone https://github.com/FIAP-2026-CHALLENGE/DotNet
 cd DotNet/DotNet.Api
 ```
 
