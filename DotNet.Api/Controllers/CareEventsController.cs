@@ -1,6 +1,7 @@
 ﻿using DotNet.Api.Data;
 using DotNet.Api.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace DotNet.Api.Controllers;
 
@@ -8,6 +9,8 @@ namespace DotNet.Api.Controllers;
 [Route("api/care-events")]
 public class CareEventsController : ControllerBase
 {
+    private readonly AppDbContext _context;
+
     private static readonly string[] AllowedTypes =
     {
         "VACCINE",
@@ -37,16 +40,27 @@ public class CareEventsController : ControllerBase
         "CRITICAL"
     };
 
-    [HttpGet]
-    public ActionResult<IEnumerable<CareEvent>> GetAll()
+    public CareEventsController(AppDbContext context)
     {
-        return Ok(InMemoryDatabase.CareEvents);
+        _context = context;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<CareEvent>>> GetAll()
+    {
+        var events = await _context.CareEvents
+            .AsNoTracking()
+            .ToListAsync();
+
+        return Ok(events);
     }
 
     [HttpGet("{id:int}")]
-    public ActionResult<CareEvent> GetById(int id)
+    public async Task<ActionResult<CareEvent>> GetById(int id)
     {
-        var careEvent = InMemoryDatabase.CareEvents.FirstOrDefault(e => e.Id == id);
+        var careEvent = await _context.CareEvents
+            .AsNoTracking()
+            .FirstOrDefaultAsync(e => e.Id == id);
 
         if (careEvent is null)
         {
@@ -57,24 +71,26 @@ public class CareEventsController : ControllerBase
     }
 
     [HttpGet("pet/{petId:int}")]
-    public ActionResult<IEnumerable<CareEvent>> GetByPetId(int petId)
+    public async Task<ActionResult<IEnumerable<CareEvent>>> GetByPetId(int petId)
     {
-        var petExists = InMemoryDatabase.Pets.Any(p => p.Id == petId);
+        var petExists = await _context.Pets
+            .CountAsync(p => p.Id == petId) > 0;
 
         if (!petExists)
         {
             return NotFound("Pet not found.");
         }
 
-        var events = InMemoryDatabase.CareEvents
+        var events = await _context.CareEvents
+            .AsNoTracking()
             .Where(e => e.PetId == petId)
-            .ToList();
+            .ToListAsync();
 
         return Ok(events);
     }
 
     [HttpGet("status/{status}")]
-    public ActionResult<IEnumerable<CareEvent>> GetByStatus(string status)
+    public async Task<ActionResult<IEnumerable<CareEvent>>> GetByStatus(string status)
     {
         var normalizedStatus = status.ToUpper();
 
@@ -83,15 +99,16 @@ public class CareEventsController : ControllerBase
             return BadRequest("Status must be PENDING, COMPLETED, OVERDUE or CANCELED.");
         }
 
-        var events = InMemoryDatabase.CareEvents
-            .Where(e => e.Status.Equals(normalizedStatus, StringComparison.OrdinalIgnoreCase))
-            .ToList();
+        var events = await _context.CareEvents
+            .AsNoTracking()
+            .Where(e => e.Status == normalizedStatus)
+            .ToListAsync();
 
         return Ok(events);
     }
 
     [HttpGet("type/{type}")]
-    public ActionResult<IEnumerable<CareEvent>> GetByType(string type)
+    public async Task<ActionResult<IEnumerable<CareEvent>>> GetByType(string type)
     {
         var normalizedType = type.ToUpper();
 
@@ -100,17 +117,19 @@ public class CareEventsController : ControllerBase
             return BadRequest("Invalid care event type.");
         }
 
-        var events = InMemoryDatabase.CareEvents
-            .Where(e => e.Type.Equals(normalizedType, StringComparison.OrdinalIgnoreCase))
-            .ToList();
+        var events = await _context.CareEvents
+            .AsNoTracking()
+            .Where(e => e.Type == normalizedType)
+            .ToListAsync();
 
         return Ok(events);
     }
 
     [HttpGet("pet/{petId:int}/status/{status}")]
-    public ActionResult<IEnumerable<CareEvent>> GetByPetIdAndStatus(int petId, string status)
+    public async Task<ActionResult<IEnumerable<CareEvent>>> GetByPetIdAndStatus(int petId, string status)
     {
-        var petExists = InMemoryDatabase.Pets.Any(p => p.Id == petId);
+        var petExists = await _context.Pets
+            .CountAsync(p => p.Id == petId) > 0;
 
         if (!petExists)
         {
@@ -124,31 +143,36 @@ public class CareEventsController : ControllerBase
             return BadRequest("Status must be PENDING, COMPLETED, OVERDUE or CANCELED.");
         }
 
-        var events = InMemoryDatabase.CareEvents
-            .Where(e => e.PetId == petId &&
-                        e.Status.Equals(normalizedStatus, StringComparison.OrdinalIgnoreCase))
-            .ToList();
+        var events = await _context.CareEvents
+            .AsNoTracking()
+            .Where(e => e.PetId == petId && e.Status == normalizedStatus)
+            .ToListAsync();
 
         return Ok(events);
     }
 
     [HttpGet("overdue")]
-    public ActionResult<IEnumerable<CareEvent>> GetOverdue()
+    public async Task<ActionResult<IEnumerable<CareEvent>>> GetOverdue()
     {
-        var events = InMemoryDatabase.CareEvents
-            .Where(e => e.Status.Equals("OVERDUE", StringComparison.OrdinalIgnoreCase) ||
-                        e.ScheduledDate.Date < DateTime.UtcNow.Date &&
-                        !e.Status.Equals("COMPLETED", StringComparison.OrdinalIgnoreCase) &&
-                        !e.Status.Equals("CANCELED", StringComparison.OrdinalIgnoreCase))
-            .ToList();
+        var today = DateTime.UtcNow.Date;
+
+        var events = await _context.CareEvents
+            .AsNoTracking()
+            .Where(e =>
+                e.Status == "OVERDUE" ||
+                e.ScheduledDate.Date < today &&
+                e.Status != "COMPLETED" &&
+                e.Status != "CANCELED")
+            .ToListAsync();
 
         return Ok(events);
     }
 
     [HttpPost]
-    public ActionResult<CareEvent> Create(CareEvent careEvent)
+    public async Task<ActionResult<CareEvent>> Create(CareEvent careEvent)
     {
-        var petExists = InMemoryDatabase.Pets.Any(p => p.Id == careEvent.PetId);
+        var petExists = await _context.Pets
+            .CountAsync(p => p.Id == careEvent.PetId) > 0;
 
         if (!petExists)
         {
@@ -162,32 +186,32 @@ public class CareEventsController : ControllerBase
             return BadRequest(validationError);
         }
 
-        careEvent.Id = InMemoryDatabase.CareEvents.Any()
-            ? InMemoryDatabase.CareEvents.Max(e => e.Id) + 1
-            : 1;
-
+        careEvent.Id = 0;
         careEvent.Type = careEvent.Type.ToUpper();
         careEvent.Status = careEvent.Status.ToUpper();
         careEvent.Priority = careEvent.Priority.ToUpper();
         careEvent.CreatedAt = DateTime.UtcNow;
         careEvent.IsActive = true;
 
-        InMemoryDatabase.CareEvents.Add(careEvent);
+        _context.CareEvents.Add(careEvent);
+        await _context.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetById), new { id = careEvent.Id }, careEvent);
     }
 
     [HttpPut("{id:int}")]
-    public IActionResult Update(int id, CareEvent updatedCareEvent)
+    public async Task<IActionResult> Update(int id, CareEvent updatedCareEvent)
     {
-        var careEvent = InMemoryDatabase.CareEvents.FirstOrDefault(e => e.Id == id);
+        var careEvent = await _context.CareEvents
+            .FirstOrDefaultAsync(e => e.Id == id);
 
         if (careEvent is null)
         {
             return NotFound();
         }
 
-        var petExists = InMemoryDatabase.Pets.Any(p => p.Id == updatedCareEvent.PetId);
+        var petExists = await _context.Pets
+            .CountAsync(p => p.Id == updatedCareEvent.PetId) > 0;
 
         if (!petExists)
         {
@@ -212,20 +236,23 @@ public class CareEventsController : ControllerBase
         careEvent.Notes = updatedCareEvent.Notes;
         careEvent.IsActive = updatedCareEvent.IsActive;
 
+        await _context.SaveChangesAsync();
+
         return NoContent();
     }
 
     [HttpPatch("{id:int}/complete")]
-    public IActionResult Complete(int id)
+    public async Task<IActionResult> Complete(int id)
     {
-        var careEvent = InMemoryDatabase.CareEvents.FirstOrDefault(e => e.Id == id);
+        var careEvent = await _context.CareEvents
+            .FirstOrDefaultAsync(e => e.Id == id);
 
         if (careEvent is null)
         {
             return NotFound();
         }
 
-        if (careEvent.Status.Equals("CANCELED", StringComparison.OrdinalIgnoreCase))
+        if (careEvent.Status == "CANCELED")
         {
             return BadRequest("Canceled events cannot be completed.");
         }
@@ -233,20 +260,24 @@ public class CareEventsController : ControllerBase
         careEvent.Status = "COMPLETED";
         careEvent.CompletedDate = DateTime.UtcNow;
 
+        await _context.SaveChangesAsync();
+
         return NoContent();
     }
 
     [HttpDelete("{id:int}")]
-    public IActionResult Delete(int id)
+    public async Task<IActionResult> Delete(int id)
     {
-        var careEvent = InMemoryDatabase.CareEvents.FirstOrDefault(e => e.Id == id);
+        var careEvent = await _context.CareEvents
+            .FirstOrDefaultAsync(e => e.Id == id);
 
         if (careEvent is null)
         {
             return NotFound();
         }
 
-        InMemoryDatabase.CareEvents.Remove(careEvent);
+        _context.CareEvents.Remove(careEvent);
+        await _context.SaveChangesAsync();
 
         return NoContent();
     }

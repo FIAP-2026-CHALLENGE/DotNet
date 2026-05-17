@@ -1,6 +1,7 @@
 ﻿using DotNet.Api.Data;
 using DotNet.Api.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace DotNet.Api.Controllers;
 
@@ -8,16 +9,35 @@ namespace DotNet.Api.Controllers;
 [Route("api/pets")]
 public class PetsController : ControllerBase
 {
-    [HttpGet]
-    public ActionResult<IEnumerable<Pet>> GetAll()
+    private readonly AppDbContext _context;
+
+    private static readonly string[] AllowedSpecies =
     {
-        return Ok(InMemoryDatabase.Pets);
+        "DOG",
+        "CAT"
+    };
+
+    public PetsController(AppDbContext context)
+    {
+        _context = context;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<Pet>>> GetAll()
+    {
+        var pets = await _context.Pets
+            .AsNoTracking()
+            .ToListAsync();
+
+        return Ok(pets);
     }
 
     [HttpGet("{id:int}")]
-    public ActionResult<Pet> GetById(int id)
+    public async Task<ActionResult<Pet>> GetById(int id)
     {
-        var pet = InMemoryDatabase.Pets.FirstOrDefault(p => p.Id == id);
+        var pet = await _context.Pets
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == id);
 
         if (pet is null)
         {
@@ -28,46 +48,56 @@ public class PetsController : ControllerBase
     }
 
     [HttpGet("tutor/{tutorId:int}")]
-    public ActionResult<IEnumerable<Pet>> GetByTutorId(int tutorId)
+    public async Task<ActionResult<IEnumerable<Pet>>> GetByTutorId(int tutorId)
     {
-        var tutorExists = InMemoryDatabase.Tutors.Any(t => t.Id == tutorId);
+        var tutorExists = await _context.Tutors
+            .CountAsync(t => t.Id == tutorId) > 0;
 
         if (!tutorExists)
         {
             return NotFound("Tutor not found.");
         }
 
-        var pets = InMemoryDatabase.Pets
+        var pets = await _context.Pets
+            .AsNoTracking()
             .Where(p => p.TutorId == tutorId)
-            .ToList();
+            .ToListAsync();
 
         return Ok(pets);
     }
 
     [HttpGet("species/{species}")]
-    public ActionResult<IEnumerable<Pet>> GetBySpecies(string species)
+    public async Task<ActionResult<IEnumerable<Pet>>> GetBySpecies(string species)
     {
-        var pets = InMemoryDatabase.Pets
-            .Where(p => p.Species.Equals(species, StringComparison.OrdinalIgnoreCase))
-            .ToList();
+        var normalizedSpecies = species.ToUpper();
+
+        var pets = await _context.Pets
+            .AsNoTracking()
+            .Where(p => p.Species == normalizedSpecies)
+            .ToListAsync();
 
         return Ok(pets);
     }
 
     [HttpGet("breed/{breed}")]
-    public ActionResult<IEnumerable<Pet>> GetByBreed(string breed)
+    public async Task<ActionResult<IEnumerable<Pet>>> GetByBreed(string breed)
     {
-        var pets = InMemoryDatabase.Pets
-            .Where(p => p.Breed.Equals(breed, StringComparison.OrdinalIgnoreCase))
-            .ToList();
+        var normalizedBreed = breed.ToLower();
+
+        var pets = await _context.Pets
+            .AsNoTracking()
+            .Where(p => p.Breed.ToLower() == normalizedBreed)
+            .ToListAsync();
 
         return Ok(pets);
     }
 
     [HttpGet("rga/{rga}")]
-    public ActionResult<Pet> GetByRga(string rga)
+    public async Task<ActionResult<Pet>> GetByRga(string rga)
     {
-        var pet = InMemoryDatabase.Pets.FirstOrDefault(p => p.Rga == rga);
+        var pet = await _context.Pets
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Rga == rga);
 
         if (pet is null)
         {
@@ -78,76 +108,75 @@ public class PetsController : ControllerBase
     }
 
     [HttpPost]
-    public ActionResult<Pet> Create(Pet pet)
+    public async Task<ActionResult<Pet>> Create(Pet pet)
     {
-        var tutorExists = InMemoryDatabase.Tutors.Any(t => t.Id == pet.TutorId);
+        var tutorExists = await _context.Tutors
+            .CountAsync(t => t.Id == pet.TutorId) > 0;
 
         if (!tutorExists)
         {
             return BadRequest("TutorId does not exist.");
         }
 
-        if (string.IsNullOrWhiteSpace(pet.Name) ||
-            string.IsNullOrWhiteSpace(pet.Species) ||
-            string.IsNullOrWhiteSpace(pet.Breed) ||
-            string.IsNullOrWhiteSpace(pet.Sex) ||
-            pet.Weight <= 0)
+        var validationError = ValidatePet(pet);
+
+        if (validationError is not null)
         {
-            return BadRequest("Name, species, breed, sex and valid weight are required.");
+            return BadRequest(validationError);
         }
 
-        var allowedSpecies = new[] { "DOG", "CAT" };
+        var rgaAlreadyExists = !string.IsNullOrWhiteSpace(pet.Rga) &&
+            await _context.Pets.CountAsync(p => p.Rga == pet.Rga) > 0;
 
-        if (!allowedSpecies.Contains(pet.Species.ToUpper()))
+        if (rgaAlreadyExists)
         {
-            return BadRequest("Species must be DOG or CAT in this MVP version.");
+            return BadRequest("RGA already registered.");
         }
 
-        pet.Id = InMemoryDatabase.Pets.Any()
-            ? InMemoryDatabase.Pets.Max(p => p.Id) + 1
-            : 1;
-
+        pet.Id = 0;
         pet.Species = pet.Species.ToUpper();
         pet.Sex = pet.Sex.ToUpper();
         pet.CreatedAt = DateTime.UtcNow;
         pet.IsActive = true;
 
-        InMemoryDatabase.Pets.Add(pet);
+        _context.Pets.Add(pet);
+        await _context.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetById), new { id = pet.Id }, pet);
     }
 
     [HttpPut("{id:int}")]
-    public IActionResult Update(int id, Pet updatedPet)
+    public async Task<IActionResult> Update(int id, Pet updatedPet)
     {
-        var pet = InMemoryDatabase.Pets.FirstOrDefault(p => p.Id == id);
+        var pet = await _context.Pets
+            .FirstOrDefaultAsync(p => p.Id == id);
 
         if (pet is null)
         {
             return NotFound();
         }
 
-        var tutorExists = InMemoryDatabase.Tutors.Any(t => t.Id == updatedPet.TutorId);
+        var tutorExists = await _context.Tutors
+            .CountAsync(t => t.Id == updatedPet.TutorId) > 0;
 
         if (!tutorExists)
         {
             return BadRequest("TutorId does not exist.");
         }
 
-        if (string.IsNullOrWhiteSpace(updatedPet.Name) ||
-            string.IsNullOrWhiteSpace(updatedPet.Species) ||
-            string.IsNullOrWhiteSpace(updatedPet.Breed) ||
-            string.IsNullOrWhiteSpace(updatedPet.Sex) ||
-            updatedPet.Weight <= 0)
+        var validationError = ValidatePet(updatedPet);
+
+        if (validationError is not null)
         {
-            return BadRequest("Name, species, breed, sex and valid weight are required.");
+            return BadRequest(validationError);
         }
 
-        var allowedSpecies = new[] { "DOG", "CAT" };
+        var rgaAlreadyExists = !string.IsNullOrWhiteSpace(updatedPet.Rga) &&
+            await _context.Pets.CountAsync(p => p.Rga == updatedPet.Rga && p.Id != id) > 0;
 
-        if (!allowedSpecies.Contains(updatedPet.Species.ToUpper()))
+        if (rgaAlreadyExists)
         {
-            return BadRequest("Species must be DOG or CAT in this MVP version.");
+            return BadRequest("RGA already registered by another pet.");
         }
 
         pet.TutorId = updatedPet.TutorId;
@@ -161,21 +190,47 @@ public class PetsController : ControllerBase
         pet.Rga = updatedPet.Rga;
         pet.IsActive = updatedPet.IsActive;
 
+        await _context.SaveChangesAsync();
+
         return NoContent();
     }
 
     [HttpDelete("{id:int}")]
-    public IActionResult Delete(int id)
+    public async Task<IActionResult> Delete(int id)
     {
-        var pet = InMemoryDatabase.Pets.FirstOrDefault(p => p.Id == id);
+        var pet = await _context.Pets
+            .FirstOrDefaultAsync(p => p.Id == id);
 
         if (pet is null)
         {
             return NotFound();
         }
 
-        InMemoryDatabase.Pets.Remove(pet);
+        _context.Pets.Remove(pet);
+        await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    private static string? ValidatePet(Pet pet)
+    {
+        if (pet.TutorId <= 0 ||
+            string.IsNullOrWhiteSpace(pet.Name) ||
+            string.IsNullOrWhiteSpace(pet.Species) ||
+            string.IsNullOrWhiteSpace(pet.Breed) ||
+            string.IsNullOrWhiteSpace(pet.Sex) ||
+            pet.Weight <= 0)
+        {
+            return "TutorId, name, species, breed, sex and valid weight are required.";
+        }
+
+        var normalizedSpecies = pet.Species.ToUpper();
+
+        if (!AllowedSpecies.Contains(normalizedSpecies))
+        {
+            return "Species must be DOG or CAT in this MVP version.";
+        }
+
+        return null;
     }
 }
