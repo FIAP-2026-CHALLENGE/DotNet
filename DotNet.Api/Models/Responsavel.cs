@@ -1,6 +1,6 @@
-﻿namespace DotNet.Api.Models;
+namespace DotNet.Api.Models;
 
-public class Tutor
+public class Responsavel
 {
     public int Id { get; set; }
 

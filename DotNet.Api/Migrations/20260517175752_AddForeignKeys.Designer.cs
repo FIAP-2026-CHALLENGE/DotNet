@@ -3,6 +3,7 @@ using System;
 using DotNet.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Oracle.EntityFrameworkCore.Metadata;
 
@@ -11,9 +12,11 @@ using Oracle.EntityFrameworkCore.Metadata;
 namespace DotNet.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260517175752_AddForeignKeys")]
+    partial class AddForeignKeys
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,79 +24,6 @@ namespace DotNet.Api.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             OracleModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("DotNet.Api.Models.Animal", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("NUMBER(10)")
-                        .HasColumnName("ID");
-
-                    OraclePropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("BirthDate")
-                        .HasColumnType("TIMESTAMP(7)")
-                        .HasColumnName("BIRTH_DATE");
-
-                    b.Property<string>("Breed")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("NVARCHAR2(80)")
-                        .HasColumnName("BREED");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TIMESTAMP(7)")
-                        .HasColumnName("CREATED_AT");
-
-                    b.Property<int>("IsActive")
-                        .HasColumnType("NUMBER(1)")
-                        .HasColumnName("IS_ACTIVE");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("NVARCHAR2(120)")
-                        .HasColumnName("NAME");
-
-                    b.Property<string>("Nickname")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("NVARCHAR2(120)")
-                        .HasColumnName("NICKNAME");
-
-                    b.Property<int>("ResponsavelId")
-                        .HasColumnType("NUMBER(10)")
-                        .HasColumnName("RESPONSAVEL_ID");
-
-                    b.Property<string>("Rga")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("NVARCHAR2(30)")
-                        .HasColumnName("RGA");
-
-                    b.Property<string>("Sex")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("NVARCHAR2(20)")
-                        .HasColumnName("SEX");
-
-                    b.Property<string>("Species")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("NVARCHAR2(30)")
-                        .HasColumnName("SPECIES");
-
-                    b.Property<decimal>("Weight")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("DECIMAL(10,2)")
-                        .HasColumnName("WEIGHT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ResponsavelId");
-
-                    b.ToTable("T_CP_ANIMAIS", (string)null);
-                });
 
             modelBuilder.Entity("DotNet.Api.Models.CareEvent", b =>
                 {
@@ -167,7 +97,80 @@ namespace DotNet.Api.Migrations
                     b.ToTable("T_CP_CARE_EVENTS", (string)null);
                 });
 
-            modelBuilder.Entity("DotNet.Api.Models.Responsavel", b =>
+            modelBuilder.Entity("DotNet.Api.Models.Pet", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("NUMBER(10)")
+                        .HasColumnName("ID");
+
+                    OraclePropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("BirthDate")
+                        .HasColumnType("TIMESTAMP(7)")
+                        .HasColumnName("BIRTH_DATE");
+
+                    b.Property<string>("Breed")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("NVARCHAR2(80)")
+                        .HasColumnName("BREED");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TIMESTAMP(7)")
+                        .HasColumnName("CREATED_AT");
+
+                    b.Property<int>("IsActive")
+                        .HasColumnType("NUMBER(1)")
+                        .HasColumnName("IS_ACTIVE");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("NVARCHAR2(120)")
+                        .HasColumnName("NAME");
+
+                    b.Property<string>("Nickname")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("NVARCHAR2(120)")
+                        .HasColumnName("NICKNAME");
+
+                    b.Property<string>("Rga")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("NVARCHAR2(30)")
+                        .HasColumnName("RGA");
+
+                    b.Property<string>("Sex")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("NVARCHAR2(20)")
+                        .HasColumnName("SEX");
+
+                    b.Property<string>("Species")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("NVARCHAR2(30)")
+                        .HasColumnName("SPECIES");
+
+                    b.Property<int>("TutorId")
+                        .HasColumnType("NUMBER(10)")
+                        .HasColumnName("TUTOR_ID");
+
+                    b.Property<decimal>("Weight")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("DECIMAL(10,2)")
+                        .HasColumnName("WEIGHT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TutorId");
+
+                    b.ToTable("T_CP_PETS", (string)null);
+                });
+
+            modelBuilder.Entity("DotNet.Api.Models.Tutor", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -210,23 +213,23 @@ namespace DotNet.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("T_CP_RESPONSAVEIS", (string)null);
-                });
-
-            modelBuilder.Entity("DotNet.Api.Models.Animal", b =>
-                {
-                    b.HasOne("DotNet.Api.Models.Responsavel", null)
-                        .WithMany()
-                        .HasForeignKey("ResponsavelId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                    b.ToTable("T_CP_TUTORS", (string)null);
                 });
 
             modelBuilder.Entity("DotNet.Api.Models.CareEvent", b =>
                 {
-                    b.HasOne("DotNet.Api.Models.Animal", null)
+                    b.HasOne("DotNet.Api.Models.Pet", null)
                         .WithMany()
                         .HasForeignKey("PetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("DotNet.Api.Models.Pet", b =>
+                {
+                    b.HasOne("DotNet.Api.Models.Tutor", null)
+                        .WithMany()
+                        .HasForeignKey("TutorId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
