@@ -1,10 +1,10 @@
-﻿namespace DotNet.Api.Models;
+namespace DotNet.Api.Models;
 
-public class Pet
+public class Animal
 {
     public int Id { get; set; }
 
-    public int TutorId { get; set; }
+    public int ResponsavelId { get; set; }
 
     public string Name { get; set; } = string.Empty;
 

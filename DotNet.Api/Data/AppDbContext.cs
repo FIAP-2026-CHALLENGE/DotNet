@@ -10,9 +10,9 @@ public class AppDbContext : DbContext
     {
     }
 
-    public DbSet<Tutor> Tutors => Set<Tutor>();
+    public DbSet<Responsavel> Responsaveis => Set<Responsavel>();
 
-    public DbSet<Pet> Pets => Set<Pet>();
+    public DbSet<Animal> Animais => Set<Animal>();
 
     public DbSet<CareEvent> CareEvents => Set<CareEvent>();
 
@@ -20,110 +20,110 @@ public class AppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.Entity<Tutor>(entity =>
+        modelBuilder.Entity<Responsavel>(entity =>
         {
-            entity.ToTable("T_CP_TUTORS");
+            entity.ToTable("T_CP_RESPONSAVEIS");
 
-            entity.HasKey(t => t.Id);
+            entity.HasKey(r => r.Id);
 
-            entity.Property(t => t.Id)
+            entity.Property(r => r.Id)
                 .HasColumnName("ID");
 
-            entity.Property(t => t.Name)
+            entity.Property(r => r.Name)
                 .HasColumnName("NAME")
                 .HasMaxLength(120)
                 .IsRequired();
 
-            entity.Property(t => t.Email)
+            entity.Property(r => r.Email)
                 .HasColumnName("EMAIL")
                 .HasMaxLength(160)
                 .IsRequired();
 
-            entity.Property(t => t.Phone)
+            entity.Property(r => r.Phone)
                 .HasColumnName("PHONE")
                 .HasMaxLength(20)
                 .IsRequired();
 
-            entity.Property(t => t.Cpf)
+            entity.Property(r => r.Cpf)
                 .HasColumnName("CPF")
                 .HasMaxLength(14)
                 .IsRequired();
 
-            entity.Property(t => t.CreatedAt)
+            entity.Property(r => r.CreatedAt)
                 .HasColumnName("CREATED_AT")
                 .IsRequired();
 
-            entity.Property(t => t.IsActive)
+            entity.Property(r => r.IsActive)
                 .HasColumnName("IS_ACTIVE")
                 .HasColumnType("NUMBER(1)")
                 .HasConversion<int>()
                 .IsRequired();
         });
 
-        modelBuilder.Entity<Pet>(entity =>
+        modelBuilder.Entity<Animal>(entity =>
         {
-            entity.ToTable("T_CP_PETS");
+            entity.ToTable("T_CP_ANIMAIS");
 
-            entity.HasKey(p => p.Id);
+            entity.HasKey(a => a.Id);
 
-            entity.Property(p => p.Id)
+            entity.Property(a => a.Id)
                 .HasColumnName("ID");
 
-            entity.Property(p => p.TutorId)
-                .HasColumnName("TUTOR_ID")
+            entity.Property(a => a.ResponsavelId)
+                .HasColumnName("RESPONSAVEL_ID")
                 .IsRequired();
 
-            entity.Property(p => p.Name)
+            entity.Property(a => a.Name)
                 .HasColumnName("NAME")
                 .HasMaxLength(120)
                 .IsRequired();
 
-            entity.Property(p => p.Nickname)
+            entity.Property(a => a.Nickname)
                 .HasColumnName("NICKNAME")
                 .HasMaxLength(120);
 
-            entity.Property(p => p.Species)
+            entity.Property(a => a.Species)
                 .HasColumnName("SPECIES")
                 .HasMaxLength(30)
                 .IsRequired();
 
-            entity.Property(p => p.Breed)
+            entity.Property(a => a.Breed)
                 .HasColumnName("BREED")
                 .HasMaxLength(80)
                 .IsRequired();
 
-            entity.Property(p => p.BirthDate)
+            entity.Property(a => a.BirthDate)
                 .HasColumnName("BIRTH_DATE")
                 .IsRequired();
 
-            entity.Property(p => p.Weight)
+            entity.Property(a => a.Weight)
                 .HasColumnName("WEIGHT")
                 .HasPrecision(10, 2)
                 .IsRequired();
 
-            entity.Property(p => p.Sex)
+            entity.Property(a => a.Sex)
                 .HasColumnName("SEX")
                 .HasMaxLength(20)
                 .IsRequired();
 
-            entity.Property(p => p.Rga)
+            entity.Property(a => a.Rga)
                 .HasColumnName("RGA")
                 .HasMaxLength(30);
 
-            entity.Property(p => p.CreatedAt)
+            entity.Property(a => a.CreatedAt)
                 .HasColumnName("CREATED_AT")
                 .IsRequired();
 
-            entity.Property(p => p.IsActive)
+            entity.Property(a => a.IsActive)
                 .HasColumnName("IS_ACTIVE")
                 .HasColumnType("NUMBER(1)")
                 .HasConversion<int>()
                 .IsRequired();
 
-            // FK: Pet → Tutor
-            entity.HasOne<Tutor>()
+            // FK: Animal → Responsavel
+            entity.HasOne<Responsavel>()
                 .WithMany()
-                .HasForeignKey(p => p.TutorId)
+                .HasForeignKey(a => a.ResponsavelId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -185,8 +185,8 @@ public class AppDbContext : DbContext
                 .HasConversion<int>()
                 .IsRequired();
 
-            // FK: CareEvent → Pet
-            entity.HasOne<Pet>()
+            // FK: CareEvent → Animal
+            entity.HasOne<Animal>()
                 .WithMany()
                 .HasForeignKey(e => e.PetId)
                 .OnDelete(DeleteBehavior.Restrict);

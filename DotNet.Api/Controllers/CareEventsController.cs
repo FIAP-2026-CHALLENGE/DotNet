@@ -74,22 +74,22 @@ public class CareEventsController : ControllerBase
         return Ok(careEvent);
     }
 
-    [HttpGet("pet/{petId:int}")]
+    [HttpGet("animal/{animalId:int}")]
     [ProducesResponseType(typeof(IEnumerable<CareEvent>), 200)]
     [ProducesResponseType(404)]
-    public async Task<ActionResult<IEnumerable<CareEvent>>> GetByPetId(int petId)
+    public async Task<ActionResult<IEnumerable<CareEvent>>> GetByAnimalId(int animalId)
     {
-        var petExists = await _context.Pets
-            .CountAsync(p => p.Id == petId) > 0;
+        var animalExists = await _context.Animais
+            .CountAsync(a => a.Id == animalId) > 0;
 
-        if (!petExists)
+        if (!animalExists)
         {
-            return NotFound("Pet not found.");
+            return NotFound("Animal not found.");
         }
 
         var events = await _context.CareEvents
             .AsNoTracking()
-            .Where(e => e.PetId == petId)
+            .Where(e => e.PetId == animalId)
             .ToListAsync();
 
         return Ok(events);
@@ -135,18 +135,18 @@ public class CareEventsController : ControllerBase
         return Ok(events);
     }
 
-    [HttpGet("pet/{petId:int}/status/{status}")]
+    [HttpGet("animal/{animalId:int}/status/{status}")]
     [ProducesResponseType(typeof(IEnumerable<CareEvent>), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
-    public async Task<ActionResult<IEnumerable<CareEvent>>> GetByPetIdAndStatus(int petId, string status)
+    public async Task<ActionResult<IEnumerable<CareEvent>>> GetByAnimalIdAndStatus(int animalId, string status)
     {
-        var petExists = await _context.Pets
-            .CountAsync(p => p.Id == petId) > 0;
+        var animalExists = await _context.Animais
+            .CountAsync(a => a.Id == animalId) > 0;
 
-        if (!petExists)
+        if (!animalExists)
         {
-            return NotFound("Pet not found.");
+            return NotFound("Animal not found.");
         }
 
         var normalizedStatus = status.ToUpper();
@@ -158,7 +158,7 @@ public class CareEventsController : ControllerBase
 
         var events = await _context.CareEvents
             .AsNoTracking()
-            .Where(e => e.PetId == petId && e.Status == normalizedStatus)
+            .Where(e => e.PetId == animalId && e.Status == normalizedStatus)
             .ToListAsync();
 
         return Ok(events);
@@ -187,12 +187,12 @@ public class CareEventsController : ControllerBase
     [ProducesResponseType(400)]
     public async Task<ActionResult<CareEvent>> Create(CareEvent careEvent)
     {
-        var petExists = await _context.Pets
-            .CountAsync(p => p.Id == careEvent.PetId) > 0;
+        var animalExists = await _context.Animais
+            .CountAsync(a => a.Id == careEvent.PetId) > 0;
 
-        if (!petExists)
+        if (!animalExists)
         {
-            return BadRequest("PetId does not exist.");
+            return BadRequest("AnimalId does not exist.");
         }
 
         var validationError = ValidateCareEvent(careEvent);
@@ -229,12 +229,12 @@ public class CareEventsController : ControllerBase
             return NotFound();
         }
 
-        var petExists = await _context.Pets
-            .CountAsync(p => p.Id == updatedCareEvent.PetId) > 0;
+        var animalExists = await _context.Animais
+            .CountAsync(a => a.Id == updatedCareEvent.PetId) > 0;
 
-        if (!petExists)
+        if (!animalExists)
         {
-            return BadRequest("PetId does not exist.");
+            return BadRequest("AnimalId does not exist.");
         }
 
         var validationError = ValidateCareEvent(updatedCareEvent);
@@ -314,7 +314,7 @@ public class CareEventsController : ControllerBase
             string.IsNullOrWhiteSpace(careEvent.Status) ||
             string.IsNullOrWhiteSpace(careEvent.Priority))
         {
-            return "PetId, type, title, status and priority are required.";
+            return "AnimalId, type, title, status and priority are required.";
         }
 
         var normalizedType = careEvent.Type.ToUpper();
