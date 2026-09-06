@@ -1,8 +1,8 @@
 using DotNet.Api.Excecoes;
+using DotNet.Api.Infraestrutura.Observabilidade;
 using DotNet.Api.Models;
 using DotNet.Api.Servicos;
 using Microsoft.AspNetCore.Mvc;
-using DotNet.Api.Infraestrutura.Observabilidade;
 
 namespace DotNet.Api.Controllers;
 
@@ -12,10 +12,12 @@ namespace DotNet.Api.Controllers;
 public class AnimaisController : ControllerBase
 {
     private readonly IAnimalServico _servico;
+    private readonly ILogger<AnimaisController> _logger;
 
-    public AnimaisController(IAnimalServico servico)
+    public AnimaisController(IAnimalServico servico, ILogger<AnimaisController> logger)
     {
         _servico = servico;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -103,6 +105,10 @@ public class AnimaisController : ControllerBase
                 new KeyValuePair<string, object?>("recurso", "animal"),
                 new KeyValuePair<string, object?>("status", "sucesso"));
 
+            _logger.LogInformation(
+                "Animal {AnimalId} ({Nome}) criado com sucesso para Responsavel {ResponsavelId}.",
+                criado.Id, criado.Name, criado.ResponsavelId);
+
             return CreatedAtAction(nameof(GetById), new { id = criado.Id }, criado);
         }
         catch (Exception ex) when (ex is ArgumentException or RegraDeNegocioException)
@@ -110,6 +116,8 @@ public class AnimaisController : ControllerBase
             AplicacaoMetricas.CadastrosRealizados.Add(1,
                 new KeyValuePair<string, object?>("recurso", "animal"),
                 new KeyValuePair<string, object?>("status", "falha"));
+
+            _logger.LogWarning(ex, "Falha ao criar Animal: {Motivo}", ex.Message);
 
             return BadRequest(ex.Message);
         }
@@ -128,6 +136,8 @@ public class AnimaisController : ControllerBase
                 updatedAnimal.Species, updatedAnimal.Breed, updatedAnimal.BirthDate,
                 updatedAnimal.Weight, updatedAnimal.Sex, updatedAnimal.Rga, updatedAnimal.IsActive);
 
+            _logger.LogInformation("Animal {AnimalId} atualizado com sucesso.", id);
+
             return NoContent();
         }
         catch (RecursoNaoEncontradoException ex)
@@ -136,6 +146,8 @@ public class AnimaisController : ControllerBase
         }
         catch (Exception ex) when (ex is ArgumentException or RegraDeNegocioException)
         {
+            _logger.LogWarning(ex, "Falha ao atualizar Animal {AnimalId}: {Motivo}", id, ex.Message);
+
             return BadRequest(ex.Message);
         }
     }
@@ -148,6 +160,8 @@ public class AnimaisController : ControllerBase
         try
         {
             await _servico.RemoverAsync(id);
+
+            _logger.LogInformation("Animal {AnimalId} removido com sucesso.", id);
 
             return NoContent();
         }

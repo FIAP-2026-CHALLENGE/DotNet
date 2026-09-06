@@ -26,10 +26,4 @@
     <ProjectReference Include="..\DotNet.Api\DotNet.Api.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Dominio\" />
-    <Folder Include="Integracao\" />
-    <Folder Include="Servicos\" />
-  </ItemGroup>
-
 </Project>

@@ -12,10 +12,12 @@ namespace DotNet.Api.Controllers;
 public class CareEventsController : ControllerBase
 {
     private readonly ICareEventServico _servico;
+    private readonly ILogger<CareEventsController> _logger;
 
-    public CareEventsController(ICareEventServico servico)
+    public CareEventsController(ICareEventServico servico, ILogger<CareEventsController> logger)
     {
         _servico = servico;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -132,6 +134,10 @@ public class CareEventsController : ControllerBase
                 new KeyValuePair<string, object?>("recurso", "care_event"),
                 new KeyValuePair<string, object?>("status", "sucesso"));
 
+            _logger.LogInformation(
+                "CareEvent {CareEventId} ({Tipo}) criado com sucesso para Animal {AnimalId}.",
+                criado.Id, criado.Type, criado.PetId);
+
             return CreatedAtAction(nameof(GetById), new { id = criado.Id }, criado);
         }
         catch (Exception ex) when (ex is ArgumentException or RegraDeNegocioException)
@@ -139,6 +145,8 @@ public class CareEventsController : ControllerBase
             AplicacaoMetricas.CadastrosRealizados.Add(1,
                 new KeyValuePair<string, object?>("recurso", "care_event"),
                 new KeyValuePair<string, object?>("status", "falha"));
+
+            _logger.LogWarning(ex, "Falha ao criar CareEvent: {Motivo}", ex.Message);
 
             return BadRequest(ex.Message);
         }
@@ -157,6 +165,8 @@ public class CareEventsController : ControllerBase
                 updatedCareEvent.Description, updatedCareEvent.ScheduledDate, updatedCareEvent.CompletedDate,
                 updatedCareEvent.Status, updatedCareEvent.Priority, updatedCareEvent.Notes, updatedCareEvent.IsActive);
 
+            _logger.LogInformation("CareEvent {CareEventId} atualizado com sucesso.", id);
+
             return NoContent();
         }
         catch (RecursoNaoEncontradoException ex)
@@ -165,6 +175,8 @@ public class CareEventsController : ControllerBase
         }
         catch (Exception ex) when (ex is ArgumentException or RegraDeNegocioException)
         {
+            _logger.LogWarning(ex, "Falha ao atualizar CareEvent {CareEventId}: {Motivo}", id, ex.Message);
+
             return BadRequest(ex.Message);
         }
     }
@@ -179,6 +191,8 @@ public class CareEventsController : ControllerBase
         {
             await _servico.ConcluirAsync(id);
 
+            _logger.LogInformation("CareEvent {CareEventId} concluído com sucesso.", id);
+
             return NoContent();
         }
         catch (RecursoNaoEncontradoException ex)
@@ -187,6 +201,8 @@ public class CareEventsController : ControllerBase
         }
         catch (RegraDeNegocioException ex)
         {
+            _logger.LogWarning(ex, "Falha ao concluir CareEvent {CareEventId}: {Motivo}", id, ex.Message);
+
             return BadRequest(ex.Message);
         }
     }
@@ -199,6 +215,8 @@ public class CareEventsController : ControllerBase
         try
         {
             await _servico.RemoverAsync(id);
+
+            _logger.LogInformation("CareEvent {CareEventId} removido com sucesso.", id);
 
             return NoContent();
         }

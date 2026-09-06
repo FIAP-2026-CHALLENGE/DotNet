@@ -3,6 +3,7 @@
 > **Nome temporário do projeto:** `DotNet.Api`
 > **Nome comercial:** a definir pelo grupo
 > **Contexto:** Challenge FIAP 2026 — solução digital para apoiar a continuidade do cuidado veterinário, com foco em responsável, animal e eventos de cuidado.
+> **Escopo desta entrega:** 3º Sprint da disciplina *Advanced Business Development with .NET* — Monitoramento, Observabilidade e Testes Automatizados.
 
 ---
 
@@ -18,7 +19,7 @@ O objetivo da API é permitir o cadastro e gerenciamento de:
 
 A proposta é estruturar dados essenciais para que uma aplicação web/app possa consultar, registrar e acompanhar informações relacionadas ao cuidado preventivo, terapêutico e recorrente de cada animal.
 
-Nesta versão, além do CRUD funcional, a API conta com uma arquitetura em camadas (Controller → Serviço → Repositório), Health Check de conectividade com o Oracle, logging estruturado com rastreabilidade por requisição (Correlation ID), instrumentação de observabilidade via OpenTelemetry (Tracing e Métricas), e uma suíte de testes automatizados (unitários e de integração).
+Nesta versão, além do CRUD funcional, a API conta com uma arquitetura em camadas (Controller → Serviço → Repositório), Health Check de conectividade com o Oracle, logging estruturado com rastreabilidade por requisição (Correlation ID), instrumentação de observabilidade via OpenTelemetry (Tracing e Métricas), e uma suíte de testes automatizados (unitários e de integração), organizados em projetos separados por camada.
 
 Nesta primeira versão, o MVP trabalha com **cães** e **gatos**, mantendo a arquitetura preparada para evolução futura para outras espécies.
 
@@ -53,7 +54,7 @@ O MVP da API tem como objetivo entregar um fluxo funcional mínimo:
 7. Expor um endpoint de Health Check para monitoramento;
 8. Registrar logs estruturados e rastreáveis por requisição;
 9. Expor métricas e tracing via OpenTelemetry;
-10. Garantir cobertura de testes automatizados nas camadas de domínio, serviço e integração.
+10. Garantir cobertura de testes automatizados nas camadas de Domínio, Serviço e Integração.
 
 Fluxo principal:
 
@@ -84,9 +85,9 @@ Prioridade: HIGH
 | Oracle Database | Banco de dados relacional |
 | Swagger / Swashbuckle | Documentação e testes dos endpoints |
 | User Secrets | Armazenamento local seguro da connection string |
-| Serilog (Console + File) | Logging estruturado com Correlation ID |
+| Serilog (Console + File) | Logging estruturado com níveis (Information/Warning) e Correlation ID |
 | OpenTelemetry | Tracing (Spans manuais e automáticos) e Métricas customizadas |
-| Health Checks (ASP.NET Core) | Endpoint `/health` com verificação real de conectividade Oracle |
+| Health Checks (`Microsoft.Extensions.Diagnostics.HealthChecks`) | Endpoint `/health` com verificação real de conectividade Oracle |
 | xUnit + Moq + FluentAssertions | Testes unitários de Domínio e de Serviço (padrão AAA) |
 | Microsoft.AspNetCore.Mvc.Testing | Testes de integração via `WebApplicationFactory` |
 | Microsoft.EntityFrameworkCore.InMemory | Banco em memória usado exclusivamente pelos testes de integração |
@@ -138,17 +139,28 @@ DotNet.Api/
 ├── appsettings.json
 └── DotNet.Api.csproj
 
-DotNet.Api.Tests/
-├── Dominio/          (testes de entidade, sem dependências externas)
-├── Servicos/         (testes de Serviço com Moq, mockando Repositórios)
-└── Integracao/       (testes HTTP end-to-end com WebApplicationFactory)
+DotNet.Api.UnitTests/                  (testes de Domínio e de Serviço)
+├── Dominio/
+│   ├── ResponsavelTests.cs
+│   ├── AnimalTests.cs
+│   └── CareEventTests.cs
+└── Servicos/
+    ├── ResponsavelServicoTests.cs
+    ├── AnimalServicoTests.cs
+    └── CareEventServicoTests.cs
+
+DotNet.Api.IntegrationTests/            (testes end-to-end via HTTP)
+├── CustomWebApplicationFactory.cs
+├── IntegrationTestsCollection.cs      (Collection Fixture)
+├── HealthEndpointTests.cs
+└── AnimaisEndpointsTests.cs
 ```
 
 ### Responsabilidade das pastas
 
 | Pasta/Arquivo | Responsabilidade |
 |---|---|
-| `Controllers` | Recebe requisições HTTP, delega para os Serviços e traduz exceções em códigos HTTP |
+| `Controllers` | Recebe requisições HTTP, delega para os Serviços, registra logs (`ILogger`) e traduz exceções em códigos HTTP |
 | `Servicos` | Orquestra regras de negócio entre entidades (ex: Animal só existe se Responsavel existir) |
 | `Repositorios` | Acesso a dado puro via EF Core, sem nenhuma regra de negócio |
 | `Excecoes` | Exceções de domínio usadas para sinalizar 400 (regra de negócio) e 404 (não encontrado) |
@@ -160,7 +172,8 @@ DotNet.Api.Tests/
 | `Migrations` | Histórico de alterações do schema geradas pelo EF Core |
 | `Program.cs` | Configuração principal: DI, Serilog, OpenTelemetry, Health Checks e pipeline |
 | `appsettings.json` | Configurações públicas e placeholders |
-| `DotNet.Api.Tests` | Projeto de testes automatizados (xUnit, Moq, FluentAssertions) |
+| `DotNet.Api.UnitTests` | Testes de Domínio (entidades isoladas) e de Serviço (Moq mockando Repositórios) |
+| `DotNet.Api.IntegrationTests` | Testes HTTP end-to-end via `WebApplicationFactory`, com banco EF Core InMemory |
 
 ---
 
@@ -503,7 +516,7 @@ Base URL local: `http://localhost:5296`
 9. Concluir um evento via `PATCH /api/care-events/{id}/complete`;
 10. Consultar novamente o evento concluído;
 11. Validar os registros no Oracle;
-12. Conferir, no terminal onde a API está rodando, os logs estruturados (com Correlation ID) e os blocos de Tracing/Métricas do OpenTelemetry.
+12. Conferir, no terminal onde a API está rodando, os logs estruturados (com Correlation ID e níveis Information/Warning) e os blocos de Tracing/Métricas do OpenTelemetry.
 
 ---
 
@@ -566,7 +579,7 @@ ORDER BY r.ID, a.ID, ce.ID;
 
 A aplicação segue uma separação explícita de responsabilidades:
 
-- **Controllers** — recebem a requisição HTTP, chamam o Serviço correspondente e traduzem o resultado (ou a exceção capturada) em um código de status HTTP. Não conhecem `AppDbContext` nem regra de negócio.
+- **Controllers** — recebem a requisição HTTP, chamam o Serviço correspondente, registram logs da operação e traduzem o resultado (ou a exceção capturada) em um código de status HTTP. Não conhecem `AppDbContext` nem regra de negócio.
 - **Serviços** (`Servicos/`) — orquestram as regras de negócio, muitas vezes consultando mais de um Repositório (ex: `AnimalServico` valida se o `ResponsavelId` existe antes de criar um Animal). Lançam `RegraDeNegocioException` ou `RecursoNaoEncontradoException` quando uma regra é violada.
 - **Repositórios** (`Repositorios/`) — acesso a dado puro via EF Core, sem nenhuma regra de negócio embutida.
 - **Models** — validam a si mesmas através de métodos estáticos `Criar(...)` e de instância `Atualizar(...)`, lançando `ArgumentException` quando os dados são inválidos. Isso garante que a entidade nunca exista em estado inconsistente, independentemente de quem a está criando.
@@ -577,7 +590,7 @@ Essa separação existe, sobretudo, para permitir testes de Serviço isolados vi
 
 ## 16. Health Checks & Diagnósticos
 
-A aplicação expõe o endpoint nativo do ASP.NET Core em:
+A aplicação expõe o endpoint nativo do ASP.NET Core, via `Microsoft.Extensions.Diagnostics.HealthChecks`, em:
 
 ```text
 GET /health
@@ -590,6 +603,8 @@ O health check customizado (`OracleHealthCheck`, em `Infraestrutura/Health`) exe
 | Oracle acessível | `200 OK` — `Healthy` |
 | Oracle inacessível / credencial inválida | `503 Service Unavailable` — `Unhealthy` |
 
+**Como monitorar:** basta fazer `GET /health` periodicamente (de um load balancer, de um script de monitoramento, ou manualmente via Swagger/Insomnia/Postman). O endpoint não exige autenticação e responde rapidamente, sendo seguro para checagens automáticas frequentes.
+
 ---
 
 ## 17. Logging Estruturado & Correlation ID
@@ -599,7 +614,15 @@ O logging é feito com **Serilog**, configurado em `Program.cs`, com dois destin
 - **Console** — para acompanhamento em tempo real durante o desenvolvimento e no vídeo de demonstração;
 - **Arquivo rotativo diário** — `logs/app-{data}.log`, útil para auditoria e para anexar evidência.
 
-Cada requisição HTTP recebe (ou propaga, se já vier no header) um **Correlation ID**, injetado pelo `CorrelationIdMiddleware` (`Aplicacao/Middlewares`) no `LogContext` do Serilog. Isso significa que **todo log emitido durante aquela requisição** — inclusive o log automático de acesso do `UseSerilogRequestLogging()` e os logs manuais dos Controllers — carrega o mesmo Correlation ID, permitindo rastrear o fluxo completo de uma requisição específica no meio de milhares de linhas de log.
+### Níveis de log utilizados
+
+- **Information**: emitido automaticamente pelo `UseSerilogRequestLogging()` para toda requisição, e manualmente pelos Controllers a cada operação de escrita bem-sucedida (`_logger.LogInformation(...)` em `Create`, `Update`, `Delete` e `Complete`).
+- **Warning**: emitido manualmente pelos Controllers sempre que uma exceção de negócio é capturada (`ArgumentException` ou `RegraDeNegocioException`), sinalizando uma requisição rejeitada por dado inválido ou regra violada.
+- **Error/Fatal**: reservado para exceções não tratadas que sobem além dos Controllers (ex: falha de conectividade inesperada com o Oracle), capturadas pelo bloco `try/catch/finally` do Serilog em `Program.cs`.
+
+### Correlation ID
+
+Cada requisição HTTP recebe (ou propaga, se já vier no header) um **Correlation ID**, injetado pelo `CorrelationIdMiddleware` (`Aplicacao/Middlewares`) no `LogContext` do Serilog. Isso significa que **todo log emitido durante aquela requisição** — inclusive o log automático de acesso e os logs manuais dos Controllers — carrega o mesmo Correlation ID, permitindo rastrear o fluxo completo de uma requisição específica no meio de milhares de linhas de log.
 
 - Header de entrada/saída: `X-Correlation-ID`
 - Se o cliente não enviar o header, a API gera um novo `Guid` automaticamente e devolve na resposta.
@@ -608,6 +631,7 @@ Exemplo de linha de log gerada:
 
 ```text
 [14:32:07 INF] (3f9a2b91-...) Animal 12 (Thor) criado com sucesso para Responsavel 4.
+[14:33:02 WRN] (7a1c9d44-...) Falha ao criar Animal: ResponsavelId does not exist.
 ```
 
 ---
@@ -616,8 +640,8 @@ Exemplo de linha de log gerada:
 
 Instrumentação manual centralizada em `Infraestrutura/Observabilidade/AplicacaoMetricas.cs`:
 
-- **Tracing**: um `ActivitySource` nomeado `ClyvoVet.Api`, usado para abrir **Spans customizados** nos endpoints de escrita (`POST /api/responsaveis`, `POST /api/animais`, `POST /api/care-events`), com tags relevantes do domínio (ex: `animal.species`, `careEvent.petId`). Além disso, `AddAspNetCoreInstrumentation()` e `AddHttpClientInstrumentation()` geram Spans automáticos para toda requisição HTTP recebida/feita pela aplicação.
-- **Métricas**: um `Counter<long>` (`clyvovet.cadastros.total`) incrementado a cada cadastro/evento processado, com as tags `recurso` (responsavel/animal/care_event) e `status` (sucesso/falha).
+- **Tracing**: um `ActivitySource` nomeado `ClyvoVet.Api`, usado para abrir **Spans customizados** nos endpoints de escrita (`POST /api/responsaveis`, `POST /api/animais`, `POST /api/care-events`), com tags relevantes do domínio (ex: `animal.species`, `careEvent.petId`). Além disso, `AddAspNetCoreInstrumentation()` e `AddHttpClientInstrumentation()` geram Spans automáticos para toda requisição HTTP recebida/feita pela aplicação, incluindo tempo de resposta.
+- **Métricas**: um `Counter<long>` (`clyvovet.cadastros.total`) incrementado a cada cadastro/evento processado, com as tags `recurso` (responsavel/animal/care_event) e `status` (sucesso/falha) — permitindo derivar taxa de erro por tipo de recurso.
 
 Os dados de Tracing e Métricas são exportados para o **Console** (`AddConsoleExporter()`), visíveis diretamente no terminal onde a API está rodando.
 
@@ -625,20 +649,30 @@ Os dados de Tracing e Métricas são exportados para o **Console** (`AddConsoleE
 
 ## 19. Testes Automatizados
 
-O projeto `DotNet.Api.Tests` (xUnit) está organizado em três camadas, seguindo o padrão **AAA (Arrange, Act, Assert)**:
+Os testes estão organizados em **dois projetos separados**, por camada:
 
-| Camada | O que testa | Dependências |
-|---|---|---|
-| `Dominio/` | Regras de validação das entidades (`Responsavel.Criar`, `Animal.Criar`, `CareEvent.Criar/Concluir`) | Nenhuma |
-| `Servicos/` | Regras de orquestração dos Serviços (ex: "Animal só é criado se Responsavel existir") | `Mock<IRepositorio>` via Moq |
-| `Integracao/` | Fluxo HTTP completo (Controller → Serviço → Repositório) | `WebApplicationFactory<Program>` + EF Core InMemory |
+| Projeto | Pastas internas | O que testa | Dependências |
+|---|---|---|---|
+| `DotNet.Api.UnitTests` | `Dominio/`, `Servicos/` | Regras de validação das entidades e regras de orquestração dos Serviços | `Mock<IRepositorio>` via Moq (nenhuma dependência externa nos testes de Domínio) |
+| `DotNet.Api.IntegrationTests` | raiz do projeto | Fluxo HTTP completo (Controller → Serviço → Repositório) | `WebApplicationFactory<Program>` + EF Core InMemory |
+
+Todos os testes seguem o padrão **AAA (Arrange, Act, Assert)** e a nomenclatura `MetodoTestado_Cenario_ResultadoEsperado` (ex: `CriarAsync_ComCpfDuplicado_DeveLancarRegraDeNegocioExceptionENaoDeveAdicionar`).
+
+### Fixtures e Collection Fixtures
+
+O projeto `DotNet.Api.IntegrationTests` utiliza uma **Collection Fixture** (`IntegrationTestsCollection`, com `[CollectionDefinition("Integration Tests")]` e `ICollectionFixture<CustomWebApplicationFactory>`), garantindo que a mesma instância da aplicação em memória (e do mesmo banco InMemory) seja compartilhada entre as classes `HealthEndpointTests` e `AnimaisEndpointsTests`, evitando subir a aplicação mais de uma vez por execução da suíte.
 
 Os testes de integração **não tocam no Oracle real** — a `CustomWebApplicationFactory` substitui o `AppDbContext` por um provider EF Core InMemory isolado por execução, para que `dotnet test` rode de forma determinística, rápida e sem depender de rede ou de credenciais do Oracle da FIAP.
+
+> **Nota sobre autenticação:** autenticação/autorização (JWT ou Identity) é um requisito da 4ª Sprint do Challenge, ainda não entregue. Por isso, os testes de integração desta entrega cobrem o fluxo HTTP completo — sucesso, validação de regra de negócio e recurso não encontrado — sem cenários de autenticação, consistente com o escopo da 3ª Sprint.
 
 ### Como executar os testes
 
 ```bash
-cd DotNet.Api.Tests
+cd DotNet.Api.UnitTests
+dotnet test
+
+cd ../DotNet.Api.IntegrationTests
 dotnet test
 ```
 
@@ -654,7 +688,7 @@ dotnet test --logger "console;verbosity=detailed"
 
 - O nome `DotNet.Api` é temporário;
 - O MVP trabalha apenas com cães e gatos;
-- Ainda não há autenticação;
+- Autenticação/autorização (JWT/Identity) ainda não implementada — requisito da 4ª Sprint do Challenge;
 - Ainda não há DTOs separados para entrada e saída (os Controllers recebem/retornam as próprias entidades de domínio);
 - Sem front-end integrado nesta entrega.
 
@@ -682,8 +716,12 @@ dotnet ef migrations list
 # Listar User Secrets
 dotnet user-secrets list
 
-# Rodar todos os testes automatizados
-cd ../DotNet.Api.Tests
+# Rodar os testes unitários (Domínio + Serviço)
+cd ../DotNet.Api.UnitTests
+dotnet test
+
+# Rodar os testes de integração
+cd ../DotNet.Api.IntegrationTests
 dotnet test
 ```
 
@@ -704,9 +742,9 @@ dotnet test
 | Migrations | ✅ Concluído |
 | Arquitetura Repository + Service | ✅ Concluído |
 | Health Check | ✅ Concluído |
-| Logging estruturado + Correlation ID | ✅ Concluído |
+| Logging estruturado (Information/Warning) + Correlation ID | ✅ Concluído |
 | OpenTelemetry (Tracing + Métricas) | ✅ Concluído |
-| Testes de Domínio | ✅ Concluído |
-| Testes de Serviço (Moq) | ✅ Concluído |
-| Testes de Integração | ✅ Concluído |
+| Testes de Domínio (`DotNet.Api.UnitTests`) | ✅ Concluído |
+| Testes de Serviço com Moq (`DotNet.Api.UnitTests`) | ✅ Concluído |
+| Testes de Integração com Collection Fixture (`DotNet.Api.IntegrationTests`) | ✅ Concluído |
 | README técnico | ✅ Concluído |

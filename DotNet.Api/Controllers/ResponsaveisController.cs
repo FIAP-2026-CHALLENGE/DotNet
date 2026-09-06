@@ -1,8 +1,8 @@
 using DotNet.Api.Excecoes;
+using DotNet.Api.Infraestrutura.Observabilidade;
 using DotNet.Api.Models;
 using DotNet.Api.Servicos;
 using Microsoft.AspNetCore.Mvc;
-using DotNet.Api.Infraestrutura.Observabilidade;
 
 namespace DotNet.Api.Controllers;
 
@@ -12,10 +12,12 @@ namespace DotNet.Api.Controllers;
 public class ResponsaveisController : ControllerBase
 {
     private readonly IResponsavelServico _servico;
+    private readonly ILogger<ResponsaveisController> _logger;
 
-    public ResponsaveisController(IResponsavelServico servico)
+    public ResponsaveisController(IResponsavelServico servico, ILogger<ResponsaveisController> logger)
     {
         _servico = servico;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -71,6 +73,8 @@ public class ResponsaveisController : ControllerBase
                 new KeyValuePair<string, object?>("recurso", "responsavel"),
                 new KeyValuePair<string, object?>("status", "sucesso"));
 
+            _logger.LogInformation("Responsavel {ResponsavelId} criado com sucesso (CPF {Cpf}).", criado.Id, criado.Cpf);
+
             return CreatedAtAction(nameof(GetById), new { id = criado.Id }, criado);
         }
         catch (Exception ex) when (ex is ArgumentException or RegraDeNegocioException)
@@ -78,6 +82,8 @@ public class ResponsaveisController : ControllerBase
             AplicacaoMetricas.CadastrosRealizados.Add(1,
                 new KeyValuePair<string, object?>("recurso", "responsavel"),
                 new KeyValuePair<string, object?>("status", "falha"));
+
+            _logger.LogWarning(ex, "Falha ao criar Responsavel: {Motivo}", ex.Message);
 
             return BadRequest(ex.Message);
         }
@@ -95,6 +101,8 @@ public class ResponsaveisController : ControllerBase
                 id, updatedResponsavel.Name, updatedResponsavel.Email,
                 updatedResponsavel.Phone, updatedResponsavel.Cpf, updatedResponsavel.IsActive);
 
+            _logger.LogInformation("Responsavel {ResponsavelId} atualizado com sucesso.", id);
+
             return NoContent();
         }
         catch (RecursoNaoEncontradoException ex)
@@ -103,6 +111,8 @@ public class ResponsaveisController : ControllerBase
         }
         catch (Exception ex) when (ex is ArgumentException or RegraDeNegocioException)
         {
+            _logger.LogWarning(ex, "Falha ao atualizar Responsavel {ResponsavelId}: {Motivo}", id, ex.Message);
+
             return BadRequest(ex.Message);
         }
     }
@@ -115,6 +125,8 @@ public class ResponsaveisController : ControllerBase
         try
         {
             await _servico.RemoverAsync(id);
+
+            _logger.LogInformation("Responsavel {ResponsavelId} removido com sucesso.", id);
 
             return NoContent();
         }
