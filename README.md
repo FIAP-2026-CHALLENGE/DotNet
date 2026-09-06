@@ -1,7 +1,7 @@
 # DotNet.Api — API REST para Jornada Contínua de Cuidado Pet
 
-> **Nome temporário do projeto:** `DotNet.Api`  
-> **Nome comercial:** a definir pelo grupo  
+> **Nome temporário do projeto:** `DotNet.Api`
+> **Nome comercial:** a definir pelo grupo
 > **Contexto:** Challenge FIAP 2026 — solução digital para apoiar a continuidade do cuidado veterinário, com foco em responsável, animal e eventos de cuidado.
 
 ---
@@ -17,6 +17,8 @@ O objetivo da API é permitir o cadastro e gerenciamento de:
 - Eventos de cuidado vinculados aos animais.
 
 A proposta é estruturar dados essenciais para que uma aplicação web/app possa consultar, registrar e acompanhar informações relacionadas ao cuidado preventivo, terapêutico e recorrente de cada animal.
+
+Nesta versão, além do CRUD funcional, a API conta com uma arquitetura em camadas (Controller → Serviço → Repositório), Health Check de conectividade com o Oracle, logging estruturado com rastreabilidade por requisição (Correlation ID), instrumentação de observabilidade via OpenTelemetry (Tracing e Métricas), e uma suíte de testes automatizados (unitários e de integração).
 
 Nesta primeira versão, o MVP trabalha com **cães** e **gatos**, mantendo a arquitetura preparada para evolução futura para outras espécies.
 
@@ -47,7 +49,11 @@ O MVP da API tem como objetivo entregar um fluxo funcional mínimo:
 3. Cadastrar eventos de cuidado vinculados ao animal;
 4. Consultar a jornada de cuidado do animal;
 5. Filtrar eventos por status, tipo e animal;
-6. Persistir os dados em banco Oracle via Entity Framework Core.
+6. Persistir os dados em banco Oracle via Entity Framework Core;
+7. Expor um endpoint de Health Check para monitoramento;
+8. Registrar logs estruturados e rastreáveis por requisição;
+9. Expor métricas e tracing via OpenTelemetry;
+10. Garantir cobertura de testes automatizados nas camadas de domínio, serviço e integração.
 
 Fluxo principal:
 
@@ -71,13 +77,19 @@ Prioridade: HIGH
 
 | Tecnologia | Uso |
 |---|---|
-| C# | Linguagem principal |
+| C# / .NET 10 | Linguagem e runtime principal |
 | ASP.NET Core Web API | Criação da API REST |
 | Entity Framework Core | ORM para persistência |
 | Oracle.EntityFrameworkCore | Provider Oracle para EF Core |
 | Oracle Database | Banco de dados relacional |
 | Swagger / Swashbuckle | Documentação e testes dos endpoints |
 | User Secrets | Armazenamento local seguro da connection string |
+| Serilog (Console + File) | Logging estruturado com Correlation ID |
+| OpenTelemetry | Tracing (Spans manuais e automáticos) e Métricas customizadas |
+| Health Checks (ASP.NET Core) | Endpoint `/health` com verificação real de conectividade Oracle |
+| xUnit + Moq + FluentAssertions | Testes unitários de Domínio e de Serviço (padrão AAA) |
+| Microsoft.AspNetCore.Mvc.Testing | Testes de integração via `WebApplicationFactory` |
+| Microsoft.EntityFrameworkCore.InMemory | Banco em memória usado exclusivamente pelos testes de integração |
 | Git / GitHub | Versionamento do projeto |
 
 ---
@@ -91,11 +103,32 @@ DotNet.Api/
 │   ├── AnimaisController.cs
 │   └── CareEventsController.cs
 │
+├── Servicos/                          (regra de negócio / orquestração)
+│   ├── IResponsavelServico.cs / ResponsavelServico.cs
+│   ├── IAnimalServico.cs / AnimalServico.cs
+│   └── ICareEventServico.cs / CareEventServico.cs
+│
+├── Repositorios/                      (acesso a dado puro, sem regra)
+│   ├── IResponsavelRepositorio.cs / ResponsavelRepositorio.cs
+│   ├── IAnimalRepositorio.cs / AnimalRepositorio.cs
+│   └── ICareEventRepositorio.cs / CareEventRepositorio.cs
+│
+├── Excecoes/                          (exceções de domínio)
+│   ├── RegraDeNegocioException.cs     (→ 400 Bad Request)
+│   └── RecursoNaoEncontradoException.cs (→ 404 Not Found)
+│
+├── Aplicacao/Middlewares/
+│   └── CorrelationIdMiddleware.cs
+│
+├── Infraestrutura/
+│   ├── Health/OracleHealthCheck.cs
+│   └── Observabilidade/AplicacaoMetricas.cs
+│
 ├── Data/
 │   └── AppDbContext.cs
 │
 ├── Models/
-│   ├── Responsavel.cs
+│   ├── Responsavel.cs   (validação de domínio via Criar/Atualizar)
 │   ├── Animal.cs
 │   └── CareEvent.cs
 │
@@ -104,40 +137,50 @@ DotNet.Api/
 ├── Program.cs
 ├── appsettings.json
 └── DotNet.Api.csproj
+
+DotNet.Api.Tests/
+├── Dominio/          (testes de entidade, sem dependências externas)
+├── Servicos/         (testes de Serviço com Moq, mockando Repositórios)
+└── Integracao/       (testes HTTP end-to-end com WebApplicationFactory)
 ```
 
 ### Responsabilidade das pastas
 
 | Pasta/Arquivo | Responsabilidade |
 |---|---|
-| `Controllers` | Recebe requisições HTTP e retorna respostas REST |
-| `Models` | Representa as entidades do domínio |
+| `Controllers` | Recebe requisições HTTP, delega para os Serviços e traduz exceções em códigos HTTP |
+| `Servicos` | Orquestra regras de negócio entre entidades (ex: Animal só existe se Responsavel existir) |
+| `Repositorios` | Acesso a dado puro via EF Core, sem nenhuma regra de negócio |
+| `Excecoes` | Exceções de domínio usadas para sinalizar 400 (regra de negócio) e 404 (não encontrado) |
+| `Aplicacao/Middlewares` | Middlewares customizados (Correlation ID) |
+| `Infraestrutura/Health` | Health Check customizado de conectividade com o Oracle |
+| `Infraestrutura/Observabilidade` | ActivitySource (Tracing) e Meter/Counter (Métricas) do OpenTelemetry |
+| `Models` | Representa as entidades do domínio, com validação própria (`Criar`/`Atualizar`) |
 | `Data/AppDbContext.cs` | Configura o EF Core e o mapeamento das tabelas Oracle |
 | `Migrations` | Histórico de alterações do schema geradas pelo EF Core |
-| `Program.cs` | Configuração principal da aplicação |
+| `Program.cs` | Configuração principal: DI, Serilog, OpenTelemetry, Health Checks e pipeline |
 | `appsettings.json` | Configurações públicas e placeholders |
+| `DotNet.Api.Tests` | Projeto de testes automatizados (xUnit, Moq, FluentAssertions) |
 
 ---
 
 ## 6. Modelo de Domínio
 
-### 6.1. Responsavel
+Todas as entidades expõem métodos estáticos `Criar(...)` (fábrica com validação) e um método `Atualizar(...)` (revalida as mesmas regras). Isso garante que a entidade nunca exista em um estado inconsistente, independentemente de quem a esteja criando (Controller, Serviço ou um teste automatizado).
 
-Representa o responsável pelo animal.
+### 6.1. Responsavel
 
 | Campo | Tipo | Descrição |
 |---|---|---|
 | `Id` | int | Identificador do responsável |
-| `Name` | string | Nome do responsável |
-| `Email` | string | E-mail do responsável |
-| `Phone` | string | Telefone |
-| `Cpf` | string | CPF |
+| `Name` | string | Nome do responsável (obrigatório) |
+| `Email` | string | E-mail do responsável (obrigatório) |
+| `Phone` | string | Telefone (obrigatório) |
+| `Cpf` | string | CPF (obrigatório, único) |
 | `CreatedAt` | DateTime | Data de cadastro |
 | `IsActive` | bool | Indica se o registro está ativo |
 
 ### 6.2. Animal
-
-Representa o animal acompanhado pela plataforma.
 
 | Campo | Tipo | Descrição |
 |---|---|---|
@@ -145,12 +188,12 @@ Representa o animal acompanhado pela plataforma.
 | `ResponsavelId` | int | ID do responsável pelo animal |
 | `Name` | string | Nome do animal |
 | `Nickname` | string | Apelido do animal |
-| `Species` | string | Espécie do animal |
+| `Species` | string | Espécie do animal (`DOG` ou `CAT`) |
 | `Breed` | string | Raça |
 | `BirthDate` | DateTime | Data de nascimento |
-| `Weight` | decimal | Peso |
+| `Weight` | decimal | Peso (deve ser maior que zero) |
 | `Sex` | string | Sexo |
-| `Rga` | string | Registro Geral Animal |
+| `Rga` | string | Registro Geral Animal (único quando informado) |
 | `CreatedAt` | DateTime | Data de cadastro |
 | `IsActive` | bool | Indica se o registro está ativo |
 
@@ -163,22 +206,22 @@ CAT
 
 ### 6.3. CareEvent
 
-Representa um evento de cuidado vinculado a um animal.
-
 | Campo | Tipo | Descrição |
 |---|---|---|
 | `Id` | int | Identificador do evento |
 | `PetId` | int | ID do animal relacionado |
 | `Type` | string | Tipo do evento |
 | `Title` | string | Título do evento |
-| `Description` | string | Descrição |
+| `Description` | string? | Descrição (opcional) |
 | `ScheduledDate` | DateTime | Data prevista |
 | `CompletedDate` | DateTime? | Data de conclusão |
 | `Status` | string | Status do evento |
 | `Priority` | string | Prioridade |
-| `Notes` | string | Observações |
+| `Notes` | string? | Observações (opcional) |
 | `CreatedAt` | DateTime | Data de criação |
 | `IsActive` | bool | Indica se o registro está ativo |
+
+> **Nota técnica:** `Description` e `Notes` são opcionais (`string?`). Quando o valor recebido é vazio ou nulo, a entidade normaliza para `null` — nunca para string vazia (`""`). Isso evita um comportamento conhecido do Oracle, que trata `''` como sinônimo de `NULL` em colunas `VARCHAR2`, o que causava violação de constraint `NOT NULL` em inserções com texto vazio.
 
 Tipos permitidos:
 
@@ -233,6 +276,7 @@ T_CP_ANIMAIS       1 ─── N  T_CP_CARE_EVENTS
 | `20260516225751_InitialCreate` | Criação inicial das tabelas |
 | `20260517175752_AddForeignKeys` | Adição das chaves estrangeiras |
 | `20260524175656_RenameEntitiesToAnimalAndResponsavel` | Renomeação das entidades e tabelas |
+| `20260906194515_AllowNullNotesAndDescriptionOnCareEvents` | Permite `NULL` nas colunas `NOTES` e `DESCRIPTION` de `T_CP_CARE_EVENTS` |
 
 ### 7.4. Configuração de Boolean no Oracle
 
@@ -242,6 +286,8 @@ Os campos booleanos foram mapeados como `NUMBER(1)`:
 true  → 1
 false → 0
 ```
+
+> **Nota técnica:** consultas LINQ que usam `.AnyAsync(...)` geram, neste provider Oracle, literais `True`/`False` na cláusula SQL — o que o Oracle não reconhece (`ORA-00904: identificador inválido`). Por isso, os métodos de verificação de existência (`ExisteAsync`, `CpfExisteAsync`, `RgaExisteAsync`) nos Repositórios usam `.CountAsync(...) > 0` no lugar de `.AnyAsync(...)`.
 
 ---
 
@@ -265,13 +311,18 @@ dotnet user-secrets init
 dotnet user-secrets set "ConnectionStrings:OracleConnection" "User Id=SEU_RM;Password=SUA_SENHA_REAL;Data Source=oracle.fiap.com.br:1521/orcl;"
 ```
 
+> **Atenção:** comandos `dotnet ef` (migrations) rodam em ambiente **Production** por padrão e não carregam os User Secrets. Sempre defina o ambiente antes de rodar:
+> ```powershell
+> $env:ASPNETCORE_ENVIRONMENT="Development"
+> ```
+
 ---
 
 ## 9. Como Executar o Projeto
 
 ### 9.1. Pré-requisitos
 
-- .NET SDK instalado
+- .NET SDK 10 instalado
 - Oracle Database acessível
 - Credenciais Oracle válidas
 - Git
@@ -299,7 +350,8 @@ dotnet user-secrets set "ConnectionStrings:OracleConnection" "User Id=SEU_RM;Pas
 
 ### 9.5. Aplicar migrations
 
-```bash
+```powershell
+$env:ASPNETCORE_ENVIRONMENT="Development"
 dotnet ef database update
 ```
 
@@ -319,6 +371,12 @@ Swagger disponível em:
 
 ```text
 http://localhost:5296/swagger
+```
+
+Health Check disponível em:
+
+```text
+http://localhost:5296/health
 ```
 
 ---
@@ -411,6 +469,12 @@ Base URL local: `http://localhost:5296`
 }
 ```
 
+### 10.4. Diagnóstico
+
+| Método | Rota | Descrição | Retornos |
+|---|---|---|---|
+| GET | `/health` | Verifica a saúde da aplicação (conectividade real com o Oracle) | 200, 503 |
+
 ---
 
 ## 11. Retornos HTTP Implementados
@@ -422,21 +486,24 @@ Base URL local: `http://localhost:5296`
 | `204 No Content` | Atualização, remoção ou conclusão realizada com sucesso |
 | `400 Bad Request` | Dados inválidos ou regra de negócio violada |
 | `404 Not Found` | Recurso não encontrado |
+| `503 Service Unavailable` | Health Check indicando falha de conectividade com o Oracle |
 
 ---
 
 ## 12. Fluxo de Teste Recomendado
 
-1. Criar um responsável via `POST /api/responsaveis`;
-2. Listar responsáveis via `GET /api/responsaveis`;
-3. Criar um animal usando o `id` do responsável via `POST /api/animais`;
-4. Listar animais do responsável via `GET /api/animais/responsavel/{responsavelId}`;
-5. Criar um evento de cuidado usando o `id` do animal via `POST /api/care-events`;
-6. Listar eventos do animal via `GET /api/care-events/animal/{animalId}`;
-7. Filtrar eventos por status via `GET /api/care-events/status/PENDING`;
-8. Concluir um evento via `PATCH /api/care-events/{id}/complete`;
-9. Consultar novamente o evento concluído;
-10. Validar os registros no Oracle.
+1. Verificar a saúde da aplicação via `GET /health`;
+2. Criar um responsável via `POST /api/responsaveis`;
+3. Listar responsáveis via `GET /api/responsaveis`;
+4. Criar um animal usando o `id` do responsável via `POST /api/animais`;
+5. Listar animais do responsável via `GET /api/animais/responsavel/{responsavelId}`;
+6. Criar um evento de cuidado usando o `id` do animal via `POST /api/care-events`;
+7. Listar eventos do animal via `GET /api/care-events/animal/{animalId}`;
+8. Filtrar eventos por status via `GET /api/care-events/status/PENDING`;
+9. Concluir um evento via `PATCH /api/care-events/{id}/complete`;
+10. Consultar novamente o evento concluído;
+11. Validar os registros no Oracle;
+12. Conferir, no terminal onde a API está rodando, os logs estruturados (com Correlation ID) e os blocos de Tracing/Métricas do OpenTelemetry.
 
 ---
 
@@ -482,48 +549,118 @@ ORDER BY r.ID, a.ID, ce.ID;
 
 ### Animais
 - Um animal só pode ser criado se o responsável existir;
-- Nome, espécie, raça, sexo e peso válido são obrigatórios;
+- Nome, espécie, raça, sexo e peso válido (maior que zero) são obrigatórios;
 - O MVP aceita apenas `DOG` e `CAT`;
 - Não permite RGA duplicado quando informado.
 
 ### Eventos de Cuidado
 - Um evento só pode ser criado se o animal existir;
-- Tipo, título, status, prioridade e data prevista são obrigatórios;
+- Tipo, título, status, prioridade e data prevista são obrigatórios; descrição e observações são opcionais;
 - O tipo, status e prioridade devem estar dentro das listas permitidas;
 - Eventos cancelados não podem ser concluídos;
-- Ao concluir um evento, o status é alterado para `COMPLETED` e a data de conclusão é preenchida.
+- Ao concluir um evento, o status é alterado para `COMPLETED` e a data de conclusão é preenchida automaticamente, se ainda não informada.
 
 ---
 
-## 15. Decisões Técnicas
+## 15. Arquitetura em Camadas (Repository + Service)
 
-### Controllers
-A API utiliza Controllers para manter a organização das rotas e separação por recurso: `ResponsaveisController`, `AnimaisController` e `CareEventsController`.
+A aplicação segue uma separação explícita de responsabilidades:
 
-### EF Core
-O Entity Framework Core abstrai a comunicação com o banco Oracle, permitindo trabalhar com entidades C# e migrations versionadas.
+- **Controllers** — recebem a requisição HTTP, chamam o Serviço correspondente e traduzem o resultado (ou a exceção capturada) em um código de status HTTP. Não conhecem `AppDbContext` nem regra de negócio.
+- **Serviços** (`Servicos/`) — orquestram as regras de negócio, muitas vezes consultando mais de um Repositório (ex: `AnimalServico` valida se o `ResponsavelId` existe antes de criar um Animal). Lançam `RegraDeNegocioException` ou `RecursoNaoEncontradoException` quando uma regra é violada.
+- **Repositórios** (`Repositorios/`) — acesso a dado puro via EF Core, sem nenhuma regra de negócio embutida.
+- **Models** — validam a si mesmas através de métodos estáticos `Criar(...)` e de instância `Atualizar(...)`, lançando `ArgumentException` quando os dados são inválidos. Isso garante que a entidade nunca exista em estado inconsistente, independentemente de quem a está criando.
 
-### User Secrets
-As credenciais do Oracle não são versionadas no GitHub. O projeto utiliza User Secrets para armazenar a connection string real durante o desenvolvimento local.
-
-### Boolean no Oracle
-Os campos booleanos são mapeados como `NUMBER(1)` com conversão automática via `HasConversion<int>()`.
+Essa separação existe, sobretudo, para permitir testes de Serviço isolados via `Mock<IRepositorio>` (Moq), sem depender do Oracle real.
 
 ---
 
-## 16. Limitações Conhecidas
+## 16. Health Checks & Diagnósticos
+
+A aplicação expõe o endpoint nativo do ASP.NET Core em:
+
+```text
+GET /health
+```
+
+O health check customizado (`OracleHealthCheck`, em `Infraestrutura/Health`) executa `Database.CanConnectAsync()` contra o Oracle real da FIAP a cada chamada — ou seja, o `/health` só retorna `Healthy` se a API conseguir abrir conexão de fato com o banco, não é um "ping" estático.
+
+| Cenário | Resposta |
+|---|---|
+| Oracle acessível | `200 OK` — `Healthy` |
+| Oracle inacessível / credencial inválida | `503 Service Unavailable` — `Unhealthy` |
+
+---
+
+## 17. Logging Estruturado & Correlation ID
+
+O logging é feito com **Serilog**, configurado em `Program.cs`, com dois destinos (sinks):
+
+- **Console** — para acompanhamento em tempo real durante o desenvolvimento e no vídeo de demonstração;
+- **Arquivo rotativo diário** — `logs/app-{data}.log`, útil para auditoria e para anexar evidência.
+
+Cada requisição HTTP recebe (ou propaga, se já vier no header) um **Correlation ID**, injetado pelo `CorrelationIdMiddleware` (`Aplicacao/Middlewares`) no `LogContext` do Serilog. Isso significa que **todo log emitido durante aquela requisição** — inclusive o log automático de acesso do `UseSerilogRequestLogging()` e os logs manuais dos Controllers — carrega o mesmo Correlation ID, permitindo rastrear o fluxo completo de uma requisição específica no meio de milhares de linhas de log.
+
+- Header de entrada/saída: `X-Correlation-ID`
+- Se o cliente não enviar o header, a API gera um novo `Guid` automaticamente e devolve na resposta.
+
+Exemplo de linha de log gerada:
+
+```text
+[14:32:07 INF] (3f9a2b91-...) Animal 12 (Thor) criado com sucesso para Responsavel 4.
+```
+
+---
+
+## 18. Observabilidade com OpenTelemetry
+
+Instrumentação manual centralizada em `Infraestrutura/Observabilidade/AplicacaoMetricas.cs`:
+
+- **Tracing**: um `ActivitySource` nomeado `ClyvoVet.Api`, usado para abrir **Spans customizados** nos endpoints de escrita (`POST /api/responsaveis`, `POST /api/animais`, `POST /api/care-events`), com tags relevantes do domínio (ex: `animal.species`, `careEvent.petId`). Além disso, `AddAspNetCoreInstrumentation()` e `AddHttpClientInstrumentation()` geram Spans automáticos para toda requisição HTTP recebida/feita pela aplicação.
+- **Métricas**: um `Counter<long>` (`clyvovet.cadastros.total`) incrementado a cada cadastro/evento processado, com as tags `recurso` (responsavel/animal/care_event) e `status` (sucesso/falha).
+
+Os dados de Tracing e Métricas são exportados para o **Console** (`AddConsoleExporter()`), visíveis diretamente no terminal onde a API está rodando.
+
+---
+
+## 19. Testes Automatizados
+
+O projeto `DotNet.Api.Tests` (xUnit) está organizado em três camadas, seguindo o padrão **AAA (Arrange, Act, Assert)**:
+
+| Camada | O que testa | Dependências |
+|---|---|---|
+| `Dominio/` | Regras de validação das entidades (`Responsavel.Criar`, `Animal.Criar`, `CareEvent.Criar/Concluir`) | Nenhuma |
+| `Servicos/` | Regras de orquestração dos Serviços (ex: "Animal só é criado se Responsavel existir") | `Mock<IRepositorio>` via Moq |
+| `Integracao/` | Fluxo HTTP completo (Controller → Serviço → Repositório) | `WebApplicationFactory<Program>` + EF Core InMemory |
+
+Os testes de integração **não tocam no Oracle real** — a `CustomWebApplicationFactory` substitui o `AppDbContext` por um provider EF Core InMemory isolado por execução, para que `dotnet test` rode de forma determinística, rápida e sem depender de rede ou de credenciais do Oracle da FIAP.
+
+### Como executar os testes
+
+```bash
+cd DotNet.Api.Tests
+dotnet test
+```
+
+Para ver o detalhamento de cada teste no console:
+
+```bash
+dotnet test --logger "console;verbosity=detailed"
+```
+
+---
+
+## 20. Limitações Conhecidas
 
 - O nome `DotNet.Api` é temporário;
 - O MVP trabalha apenas com cães e gatos;
 - Ainda não há autenticação;
-- Ainda não há DTOs separados para entrada e saída;
-- Ainda não há camada de Services/Repositories;
-- As validações estão nos Controllers;
+- Ainda não há DTOs separados para entrada e saída (os Controllers recebem/retornam as próprias entidades de domínio);
 - Sem front-end integrado nesta entrega.
 
 ---
 
-## 17. Comandos Úteis
+## 21. Comandos Úteis
 
 ```bash
 # Build
@@ -532,7 +669,8 @@ dotnet build
 # Run
 dotnet run
 
-# Criar migration
+# Criar migration (defina o ambiente antes, no PowerShell)
+$env:ASPNETCORE_ENVIRONMENT="Development"
 dotnet ef migrations add NomeDaMigration
 
 # Aplicar migration
@@ -543,11 +681,15 @@ dotnet ef migrations list
 
 # Listar User Secrets
 dotnet user-secrets list
+
+# Rodar todos os testes automatizados
+cd ../DotNet.Api.Tests
+dotnet test
 ```
 
 ---
 
-## 18. Status Atual
+## 22. Status Atual
 
 | Item | Status |
 |---|---|
@@ -560,4 +702,11 @@ dotnet user-secrets list
 | Retornos HTTP principais | ✅ Concluído |
 | Oracle + EF Core | ✅ Concluído |
 | Migrations | ✅ Concluído |
+| Arquitetura Repository + Service | ✅ Concluído |
+| Health Check | ✅ Concluído |
+| Logging estruturado + Correlation ID | ✅ Concluído |
+| OpenTelemetry (Tracing + Métricas) | ✅ Concluído |
+| Testes de Domínio | ✅ Concluído |
+| Testes de Serviço (Moq) | ✅ Concluído |
+| Testes de Integração | ✅ Concluído |
 | README técnico | ✅ Concluído |

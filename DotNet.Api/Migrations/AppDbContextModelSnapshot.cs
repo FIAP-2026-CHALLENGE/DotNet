@@ -113,7 +113,6 @@ namespace DotNet.Api.Migrations
                         .HasColumnName("CREATED_AT");
 
                     b.Property<string>("Description")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("NVARCHAR2(500)")
                         .HasColumnName("DESCRIPTION");
@@ -123,7 +122,6 @@ namespace DotNet.Api.Migrations
                         .HasColumnName("IS_ACTIVE");
 
                     b.Property<string>("Notes")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("NVARCHAR2(500)")
                         .HasColumnName("NOTES");
