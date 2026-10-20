@@ -1,4 +1,4 @@
-﻿namespace DotNet.Api.Excecoes;
+﻿namespace DotNet.Domain.Excecoes;
 
 /// <summary>
 /// Lançada quando uma regra de negócio é violada (ex: CPF duplicado, RGA duplicado,

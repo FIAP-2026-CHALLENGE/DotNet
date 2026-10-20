@@ -1,6 +1,6 @@
-﻿using DotNet.Api.Excecoes;
+﻿using DotNet.Domain.Excecoes;
 using DotNet.Api.Infraestrutura.Observabilidade;
-using DotNet.Api.Models;
+using DotNet.Domain.Entidades;
 using DotNet.Api.Servicos;
 using Microsoft.AspNetCore.Mvc;
 

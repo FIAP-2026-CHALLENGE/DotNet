@@ -1,5 +1,5 @@
-﻿using DotNet.Api.Excecoes;
-using DotNet.Api.Models;
+﻿using DotNet.Domain.Excecoes;
+using DotNet.Domain.Entidades;
 using DotNet.Api.Repositorios;
 
 namespace DotNet.Api.Servicos;

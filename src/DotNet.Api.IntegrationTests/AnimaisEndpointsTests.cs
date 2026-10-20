@@ -1,6 +1,6 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
-using DotNet.Api.Models;
+using DotNet.Domain.Entidades;
 using FluentAssertions;
 using Xunit;
 

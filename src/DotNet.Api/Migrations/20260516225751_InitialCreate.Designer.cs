@@ -25,7 +25,7 @@ namespace DotNet.Api.Migrations
 
             OracleModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("DotNet.Api.Models.CareEvent", b =>
+            modelBuilder.Entity("DotNet.Domain.Entidades.CareEvent", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -95,7 +95,7 @@ namespace DotNet.Api.Migrations
                     b.ToTable("T_CP_CARE_EVENTS", (string)null);
                 });
 
-            modelBuilder.Entity("DotNet.Api.Models.Pet", b =>
+            modelBuilder.Entity("DotNet.Domain.Entidades.Pet", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -166,7 +166,7 @@ namespace DotNet.Api.Migrations
                     b.ToTable("T_CP_PETS", (string)null);
                 });
 
-            modelBuilder.Entity("DotNet.Api.Models.Tutor", b =>
+            modelBuilder.Entity("DotNet.Domain.Entidades.Tutor", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()

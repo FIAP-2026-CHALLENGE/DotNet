@@ -1,4 +1,4 @@
-﻿namespace DotNet.Api.Models;
+﻿namespace DotNet.Domain.Entidades;
 
 public class CareEvent
 {

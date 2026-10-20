@@ -1,4 +1,4 @@
-﻿namespace DotNet.Api.Excecoes;
+﻿namespace DotNet.Domain.Excecoes;
 
 /// <summary>
 /// Lançada quando uma entidade solicitada (Responsavel, Animal ou CareEvent) não existe.
