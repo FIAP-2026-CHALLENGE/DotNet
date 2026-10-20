@@ -1,6 +1,6 @@
 ﻿using DotNet.Domain.Excecoes;
 using DotNet.Domain.Entidades;
-using DotNet.Api.Repositorios;
+using DotNet.Domain.Repositorios;
 
 namespace DotNet.Api.Servicos;
 

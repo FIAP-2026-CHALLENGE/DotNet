@@ -1,6 +1,6 @@
 ﻿using DotNet.Domain.Entidades;
 
-namespace DotNet.Api.Repositorios;
+namespace DotNet.Domain.Repositorios;
 
 public interface ICareEventRepositorio
 {

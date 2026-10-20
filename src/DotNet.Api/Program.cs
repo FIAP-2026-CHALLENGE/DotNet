@@ -9,6 +9,7 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Serilog;
+using DotNet.Domain.Repositorios;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()

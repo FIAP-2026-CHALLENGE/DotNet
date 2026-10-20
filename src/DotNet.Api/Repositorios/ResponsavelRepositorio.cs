@@ -1,6 +1,8 @@
 ﻿using DotNet.Api.Data;
 using DotNet.Domain.Entidades;
+using DotNet.Domain.Repositorios;
 using Microsoft.EntityFrameworkCore;
+
 
 namespace DotNet.Api.Repositorios;
 
