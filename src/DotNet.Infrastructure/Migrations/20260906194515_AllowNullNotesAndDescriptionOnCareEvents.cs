@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace DotNet.Api.Migrations
+namespace DotNet.Infrastructure.Migrations
 {
     /// <inheritdoc />
     public partial class AllowNullNotesAndDescriptionOnCareEvents : Migration

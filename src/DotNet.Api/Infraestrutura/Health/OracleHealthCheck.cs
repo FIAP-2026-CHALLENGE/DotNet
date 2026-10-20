@@ -1,4 +1,4 @@
-﻿using DotNet.Api.Data;
+﻿using DotNet.Infrastructure.Data;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace DotNet.Api.Infraestrutura.Health;

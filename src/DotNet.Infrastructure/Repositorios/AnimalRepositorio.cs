@@ -1,9 +1,9 @@
-﻿using DotNet.Api.Data;
+﻿using DotNet.Infrastructure.Data;
 using DotNet.Domain.Entidades;
 using DotNet.Domain.Repositorios;
 using Microsoft.EntityFrameworkCore;
 
-namespace DotNet.Api.Repositorios;
+namespace DotNet.Infrastructure.Repositorios;
 
 public class AnimalRepositorio : IAnimalRepositorio
 {

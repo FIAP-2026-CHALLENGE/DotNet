@@ -1,8 +1,8 @@
 using DotNet.Api.Aplicacao.Middlewares;
-using DotNet.Api.Data;
+using DotNet.Infrastructure.Data;
 using DotNet.Api.Infraestrutura.Health;
 using DotNet.Api.Infraestrutura.Observabilidade;
-using DotNet.Api.Repositorios;
+using DotNet.Infrastructure.Repositorios;
 using DotNet.Api.Servicos;
 using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Metrics;
