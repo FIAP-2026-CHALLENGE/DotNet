@@ -1,5 +1,6 @@
 using DotNet.Domain.Excecoes;
 using Microsoft.AspNetCore.Mvc;
+using DotNet.Api.Infraestrutura.Observabilidade;
 
 namespace DotNet.Api.Aplicacao.Middlewares;
 
@@ -39,6 +40,13 @@ public class GlobalExceptionMiddleware
             _logger.LogError(ex, "Erro inesperado ao processar a requisição.");
         else
             _logger.LogWarning("Requisição rejeitada: {Mensagem}", ex.Message);
+
+        if (context.Items.TryGetValue("recurso", out var recurso))
+        {
+            AplicacaoMetricas.CadastrosRealizados.Add(1,
+                new KeyValuePair<string, object?>("recurso", recurso),
+                new KeyValuePair<string, object?>("status", "falha"));
+        }
 
         var problema = new ProblemDetails
         {

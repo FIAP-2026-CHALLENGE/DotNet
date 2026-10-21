@@ -1,4 +1,3 @@
-using DotNet.Domain.Excecoes;
 using DotNet.Api.Infraestrutura.Observabilidade;
 using DotNet.Domain.Entidades;
 using DotNet.Application.Servicos;
@@ -32,14 +31,7 @@ public class ResponsaveisController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<ActionResult<Responsavel>> GetById(int id)
     {
-        try
-        {
-            return Ok(await _servico.ObterPorIdAsync(id));
-        }
-        catch (RecursoNaoEncontradoException ex)
-        {
-            return NotFound(ex.Message);
-        }
+        return Ok(await _servico.ObterPorIdAsync(id));
     }
 
     [HttpGet("cpf/{cpf}")]
@@ -47,14 +39,7 @@ public class ResponsaveisController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<ActionResult<Responsavel>> GetByCpf(string cpf)
     {
-        try
-        {
-            return Ok(await _servico.ObterPorCpfAsync(cpf));
-        }
-        catch (RecursoNaoEncontradoException ex)
-        {
-            return NotFound(ex.Message);
-        }
+        return Ok(await _servico.ObterPorCpfAsync(cpf));
     }
 
     [HttpPost]
@@ -65,28 +50,17 @@ public class ResponsaveisController : ControllerBase
         using var activity = AplicacaoMetricas.ActivitySource.StartActivity("CriarResponsavel");
         activity?.SetTag("responsavel.cpf", responsavel.Cpf);
 
-        try
-        {
-            var criado = await _servico.CriarAsync(responsavel.Name, responsavel.Email, responsavel.Phone, responsavel.Cpf);
+        HttpContext.Items["recurso"] = "responsavel";
 
-            AplicacaoMetricas.CadastrosRealizados.Add(1,
-                new KeyValuePair<string, object?>("recurso", "responsavel"),
-                new KeyValuePair<string, object?>("status", "sucesso"));
+        var criado = await _servico.CriarAsync(responsavel.Name, responsavel.Email, responsavel.Phone, responsavel.Cpf);
 
-            _logger.LogInformation("Responsavel {ResponsavelId} criado com sucesso (CPF {Cpf}).", criado.Id, criado.Cpf);
+        AplicacaoMetricas.CadastrosRealizados.Add(1,
+            new KeyValuePair<string, object?>("recurso", "responsavel"),
+            new KeyValuePair<string, object?>("status", "sucesso"));
 
-            return CreatedAtAction(nameof(GetById), new { id = criado.Id }, criado);
-        }
-        catch (Exception ex) when (ex is ArgumentException or RegraDeNegocioException)
-        {
-            AplicacaoMetricas.CadastrosRealizados.Add(1,
-                new KeyValuePair<string, object?>("recurso", "responsavel"),
-                new KeyValuePair<string, object?>("status", "falha"));
+        _logger.LogInformation("Responsavel {ResponsavelId} criado com sucesso (CPF {Cpf}).", criado.Id, criado.Cpf);
 
-            _logger.LogWarning(ex, "Falha ao criar Responsavel: {Motivo}", ex.Message);
-
-            return BadRequest(ex.Message);
-        }
+        return CreatedAtAction(nameof(GetById), new { id = criado.Id }, criado);
     }
 
     [HttpPut("{id:int}")]
@@ -95,26 +69,13 @@ public class ResponsaveisController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> Update(int id, Responsavel updatedResponsavel)
     {
-        try
-        {
-            await _servico.AtualizarAsync(
-                id, updatedResponsavel.Name, updatedResponsavel.Email,
-                updatedResponsavel.Phone, updatedResponsavel.Cpf, updatedResponsavel.IsActive);
+        await _servico.AtualizarAsync(
+            id, updatedResponsavel.Name, updatedResponsavel.Email,
+            updatedResponsavel.Phone, updatedResponsavel.Cpf, updatedResponsavel.IsActive);
 
-            _logger.LogInformation("Responsavel {ResponsavelId} atualizado com sucesso.", id);
+        _logger.LogInformation("Responsavel {ResponsavelId} atualizado com sucesso.", id);
 
-            return NoContent();
-        }
-        catch (RecursoNaoEncontradoException ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (Exception ex) when (ex is ArgumentException or RegraDeNegocioException)
-        {
-            _logger.LogWarning(ex, "Falha ao atualizar Responsavel {ResponsavelId}: {Motivo}", id, ex.Message);
-
-            return BadRequest(ex.Message);
-        }
+        return NoContent();
     }
 
     [HttpDelete("{id:int}")]
@@ -122,17 +83,10 @@ public class ResponsaveisController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> Delete(int id)
     {
-        try
-        {
-            await _servico.RemoverAsync(id);
+        await _servico.RemoverAsync(id);
 
-            _logger.LogInformation("Responsavel {ResponsavelId} removido com sucesso.", id);
+        _logger.LogInformation("Responsavel {ResponsavelId} removido com sucesso.", id);
 
-            return NoContent();
-        }
-        catch (RecursoNaoEncontradoException ex)
-        {
-            return NotFound(ex.Message);
-        }
+        return NoContent();
     }
 }

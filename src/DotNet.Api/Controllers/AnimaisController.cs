@@ -1,4 +1,3 @@
-using DotNet.Domain.Excecoes;
 using DotNet.Api.Infraestrutura.Observabilidade;
 using DotNet.Domain.Entidades;
 using DotNet.Application.Servicos;
@@ -32,14 +31,7 @@ public class AnimaisController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<ActionResult<Animal>> GetById(int id)
     {
-        try
-        {
-            return Ok(await _servico.ObterPorIdAsync(id));
-        }
-        catch (RecursoNaoEncontradoException ex)
-        {
-            return NotFound(ex.Message);
-        }
+        return Ok(await _servico.ObterPorIdAsync(id));
     }
 
     [HttpGet("responsavel/{responsavelId:int}")]
@@ -47,14 +39,7 @@ public class AnimaisController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<ActionResult<IEnumerable<Animal>>> GetByResponsavelId(int responsavelId)
     {
-        try
-        {
-            return Ok(await _servico.ListarPorResponsavelIdAsync(responsavelId));
-        }
-        catch (RecursoNaoEncontradoException ex)
-        {
-            return NotFound(ex.Message);
-        }
+        return Ok(await _servico.ListarPorResponsavelIdAsync(responsavelId));
     }
 
     [HttpGet("species/{species}")]
@@ -76,14 +61,7 @@ public class AnimaisController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<ActionResult<Animal>> GetByRga(string rga)
     {
-        try
-        {
-            return Ok(await _servico.ObterPorRgaAsync(rga));
-        }
-        catch (RecursoNaoEncontradoException ex)
-        {
-            return NotFound(ex.Message);
-        }
+        return Ok(await _servico.ObterPorRgaAsync(rga));
     }
 
     [HttpPost]
@@ -95,32 +73,21 @@ public class AnimaisController : ControllerBase
         activity?.SetTag("animal.responsavelId", animal.ResponsavelId);
         activity?.SetTag("animal.species", animal.Species);
 
-        try
-        {
-            var criado = await _servico.CriarAsync(
-                animal.ResponsavelId, animal.Name, animal.Nickname, animal.Species,
-                animal.Breed, animal.BirthDate, animal.Weight, animal.Sex, animal.Rga);
+        HttpContext.Items["recurso"] = "animal";
 
-            AplicacaoMetricas.CadastrosRealizados.Add(1,
-                new KeyValuePair<string, object?>("recurso", "animal"),
-                new KeyValuePair<string, object?>("status", "sucesso"));
+        var criado = await _servico.CriarAsync(
+            animal.ResponsavelId, animal.Name, animal.Nickname, animal.Species,
+            animal.Breed, animal.BirthDate, animal.Weight, animal.Sex, animal.Rga);
 
-            _logger.LogInformation(
-                "Animal {AnimalId} ({Nome}) criado com sucesso para Responsavel {ResponsavelId}.",
-                criado.Id, criado.Name, criado.ResponsavelId);
+        AplicacaoMetricas.CadastrosRealizados.Add(1,
+            new KeyValuePair<string, object?>("recurso", "animal"),
+            new KeyValuePair<string, object?>("status", "sucesso"));
 
-            return CreatedAtAction(nameof(GetById), new { id = criado.Id }, criado);
-        }
-        catch (Exception ex) when (ex is ArgumentException or RegraDeNegocioException)
-        {
-            AplicacaoMetricas.CadastrosRealizados.Add(1,
-                new KeyValuePair<string, object?>("recurso", "animal"),
-                new KeyValuePair<string, object?>("status", "falha"));
+        _logger.LogInformation(
+            "Animal {AnimalId} ({Nome}) criado com sucesso para Responsavel {ResponsavelId}.",
+            criado.Id, criado.Name, criado.ResponsavelId);
 
-            _logger.LogWarning(ex, "Falha ao criar Animal: {Motivo}", ex.Message);
-
-            return BadRequest(ex.Message);
-        }
+        return CreatedAtAction(nameof(GetById), new { id = criado.Id }, criado);
     }
 
     [HttpPut("{id:int}")]
@@ -129,27 +96,14 @@ public class AnimaisController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> Update(int id, Animal updatedAnimal)
     {
-        try
-        {
-            await _servico.AtualizarAsync(
-                id, updatedAnimal.ResponsavelId, updatedAnimal.Name, updatedAnimal.Nickname,
-                updatedAnimal.Species, updatedAnimal.Breed, updatedAnimal.BirthDate,
-                updatedAnimal.Weight, updatedAnimal.Sex, updatedAnimal.Rga, updatedAnimal.IsActive);
+        await _servico.AtualizarAsync(
+            id, updatedAnimal.ResponsavelId, updatedAnimal.Name, updatedAnimal.Nickname,
+            updatedAnimal.Species, updatedAnimal.Breed, updatedAnimal.BirthDate,
+            updatedAnimal.Weight, updatedAnimal.Sex, updatedAnimal.Rga, updatedAnimal.IsActive);
 
-            _logger.LogInformation("Animal {AnimalId} atualizado com sucesso.", id);
+        _logger.LogInformation("Animal {AnimalId} atualizado com sucesso.", id);
 
-            return NoContent();
-        }
-        catch (RecursoNaoEncontradoException ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (Exception ex) when (ex is ArgumentException or RegraDeNegocioException)
-        {
-            _logger.LogWarning(ex, "Falha ao atualizar Animal {AnimalId}: {Motivo}", id, ex.Message);
-
-            return BadRequest(ex.Message);
-        }
+        return NoContent();
     }
 
     [HttpDelete("{id:int}")]
@@ -157,17 +111,10 @@ public class AnimaisController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> Delete(int id)
     {
-        try
-        {
-            await _servico.RemoverAsync(id);
+        await _servico.RemoverAsync(id);
 
-            _logger.LogInformation("Animal {AnimalId} removido com sucesso.", id);
+        _logger.LogInformation("Animal {AnimalId} removido com sucesso.", id);
 
-            return NoContent();
-        }
-        catch (RecursoNaoEncontradoException ex)
-        {
-            return NotFound(ex.Message);
-        }
+        return NoContent();
     }
 }

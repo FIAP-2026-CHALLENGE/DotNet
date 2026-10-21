@@ -2,7 +2,7 @@
 
 /// <summary>
 /// Lançada quando uma entidade solicitada (Responsavel, Animal ou CareEvent) não existe.
-/// Os Controllers capturam esta exceção e retornam 404 Not Found.
+/// O GlobalExceptionMiddleware converte esta exceção em 404/400
 /// </summary>
 public class RecursoNaoEncontradoException : Exception
 {
