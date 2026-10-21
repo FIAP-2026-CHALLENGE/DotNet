@@ -1,5 +1,5 @@
 using DotNet.Api.Infraestrutura.Observabilidade;
-using DotNet.Domain.Entidades;
+using DotNet.Application.Dtos;
 using DotNet.Application.Servicos;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,64 +20,62 @@ public class AnimaisController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<Animal>), 200)]
-    public async Task<ActionResult<IEnumerable<Animal>>> GetAll()
+    [ProducesResponseType(typeof(IEnumerable<AnimalResponse>), 200)]
+    public async Task<ActionResult<IEnumerable<AnimalResponse>>> GetAll()
     {
         return Ok(await _servico.ListarAsync());
     }
 
     [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(Animal), 200)]
+    [ProducesResponseType(typeof(AnimalResponse), 200)]
     [ProducesResponseType(404)]
-    public async Task<ActionResult<Animal>> GetById(int id)
+    public async Task<ActionResult<AnimalResponse>> GetById(int id)
     {
         return Ok(await _servico.ObterPorIdAsync(id));
     }
 
     [HttpGet("responsavel/{responsavelId:int}")]
-    [ProducesResponseType(typeof(IEnumerable<Animal>), 200)]
+    [ProducesResponseType(typeof(IEnumerable<AnimalResponse>), 200)]
     [ProducesResponseType(404)]
-    public async Task<ActionResult<IEnumerable<Animal>>> GetByResponsavelId(int responsavelId)
+    public async Task<ActionResult<IEnumerable<AnimalResponse>>> GetByResponsavelId(int responsavelId)
     {
         return Ok(await _servico.ListarPorResponsavelIdAsync(responsavelId));
     }
 
     [HttpGet("species/{species}")]
-    [ProducesResponseType(typeof(IEnumerable<Animal>), 200)]
-    public async Task<ActionResult<IEnumerable<Animal>>> GetBySpecies(string species)
+    [ProducesResponseType(typeof(IEnumerable<AnimalResponse>), 200)]
+    public async Task<ActionResult<IEnumerable<AnimalResponse>>> GetBySpecies(string species)
     {
         return Ok(await _servico.ListarPorSpeciesAsync(species));
     }
 
     [HttpGet("breed/{breed}")]
-    [ProducesResponseType(typeof(IEnumerable<Animal>), 200)]
-    public async Task<ActionResult<IEnumerable<Animal>>> GetByBreed(string breed)
+    [ProducesResponseType(typeof(IEnumerable<AnimalResponse>), 200)]
+    public async Task<ActionResult<IEnumerable<AnimalResponse>>> GetByBreed(string breed)
     {
         return Ok(await _servico.ListarPorBreedAsync(breed));
     }
 
     [HttpGet("rga/{rga}")]
-    [ProducesResponseType(typeof(Animal), 200)]
+    [ProducesResponseType(typeof(AnimalResponse), 200)]
     [ProducesResponseType(404)]
-    public async Task<ActionResult<Animal>> GetByRga(string rga)
+    public async Task<ActionResult<AnimalResponse>> GetByRga(string rga)
     {
         return Ok(await _servico.ObterPorRgaAsync(rga));
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(Animal), 201)]
+    [ProducesResponseType(typeof(AnimalResponse), 201)]
     [ProducesResponseType(400)]
-    public async Task<ActionResult<Animal>> Create(Animal animal)
+    public async Task<ActionResult<AnimalResponse>> Create(CriarAnimalRequest request)
     {
         using var activity = AplicacaoMetricas.ActivitySource.StartActivity("CriarAnimal");
-        activity?.SetTag("animal.responsavelId", animal.ResponsavelId);
-        activity?.SetTag("animal.species", animal.Species);
+        activity?.SetTag("animal.responsavelId", request.ResponsavelId);
+        activity?.SetTag("animal.species", request.Species);
 
         HttpContext.Items["recurso"] = "animal";
 
-        var criado = await _servico.CriarAsync(
-            animal.ResponsavelId, animal.Name, animal.Nickname, animal.Species,
-            animal.Breed, animal.BirthDate, animal.Weight, animal.Sex, animal.Rga);
+        var criado = await _servico.CriarAsync(request);
 
         AplicacaoMetricas.CadastrosRealizados.Add(1,
             new KeyValuePair<string, object?>("recurso", "animal"),
@@ -94,12 +92,9 @@ public class AnimaisController : ControllerBase
     [ProducesResponseType(204)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
-    public async Task<IActionResult> Update(int id, Animal updatedAnimal)
+    public async Task<IActionResult> Update(int id, AtualizarAnimalRequest request)
     {
-        await _servico.AtualizarAsync(
-            id, updatedAnimal.ResponsavelId, updatedAnimal.Name, updatedAnimal.Nickname,
-            updatedAnimal.Species, updatedAnimal.Breed, updatedAnimal.BirthDate,
-            updatedAnimal.Weight, updatedAnimal.Sex, updatedAnimal.Rga, updatedAnimal.IsActive);
+        await _servico.AtualizarAsync(id, request);
 
         _logger.LogInformation("Animal {AnimalId} atualizado com sucesso.", id);
 

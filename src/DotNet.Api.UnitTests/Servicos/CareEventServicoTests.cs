@@ -1,4 +1,5 @@
-﻿using DotNet.Domain.Excecoes;
+﻿using DotNet.Application.Dtos;
+using DotNet.Domain.Excecoes;
 using DotNet.Domain.Entidades;
 using DotNet.Domain.Repositorios;
 using DotNet.Application.Servicos;
@@ -30,8 +31,7 @@ public class CareEventServicoTests
         _animalRepositorioMock.Setup(r => r.ExisteAsync(1)).ReturnsAsync(true);
 
         // Act
-        var careEvent = await _servico.CriarAsync(
-            1, "CHECKUP", "Check-up", "Descrição", ScheduledDate, null, "PENDING", "HIGH", null);
+        var careEvent = await _servico.CriarAsync(new CriarCareEventRequest(1, "CHECKUP", "Check-up", ScheduledDate, "PENDING", "HIGH", "Descrição"));
 
         // Assert
         careEvent.Type.Should().Be("CHECKUP");
@@ -45,8 +45,7 @@ public class CareEventServicoTests
         _animalRepositorioMock.Setup(r => r.ExisteAsync(99)).ReturnsAsync(false);
 
         // Act
-        Func<Task> act = async () => await _servico.CriarAsync(
-            99, "CHECKUP", "Check-up", "Descrição", ScheduledDate, null, "PENDING", "HIGH", null);
+        Func<Task> act = async () => await _servico.CriarAsync(new CriarCareEventRequest(99, "CHECKUP", "Check-up", ScheduledDate, "PENDING", "HIGH", "Descrição"));
 
         // Assert
         await act.Should().ThrowAsync<RegraDeNegocioException>();

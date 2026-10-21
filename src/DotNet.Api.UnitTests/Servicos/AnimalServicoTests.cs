@@ -1,4 +1,5 @@
-﻿using DotNet.Domain.Excecoes;
+﻿using DotNet.Application.Dtos;
+using DotNet.Domain.Excecoes;
 using DotNet.Domain.Entidades;
 using DotNet.Domain.Repositorios;
 using DotNet.Application.Servicos;
@@ -31,7 +32,7 @@ public class AnimalServicoTests
         _animalRepositorioMock.Setup(r => r.RgaExisteAsync("RGA123456", null)).ReturnsAsync(false);
 
         // Act
-        var animal = await _servico.CriarAsync(1, "Thor", "Toto", "DOG", "Pug", BirthDate, 8.5m, "MALE", "RGA123456");
+        var animal = await _servico.CriarAsync(new CriarAnimalRequest(1, "Thor", "DOG", "Pug", BirthDate, 8.5m, "MALE", "Toto", "RGA123456"));
 
         // Assert
         animal.Name.Should().Be("Thor");
@@ -46,7 +47,7 @@ public class AnimalServicoTests
 
         // Act
         Func<Task> act = async () =>
-            await _servico.CriarAsync(99, "Thor", "Toto", "DOG", "Pug", BirthDate, 8.5m, "MALE", "RGA123456");
+            await _servico.CriarAsync(new CriarAnimalRequest(99, "Thor", "DOG", "Pug", BirthDate, 8.5m, "MALE", "Toto", "RGA123456"));
 
         // Assert
         await act.Should().ThrowAsync<RegraDeNegocioException>();
@@ -62,7 +63,7 @@ public class AnimalServicoTests
 
         // Act
         Func<Task> act = async () =>
-            await _servico.CriarAsync(1, "Thor", "Toto", "DOG", "Pug", BirthDate, 8.5m, "MALE", "RGA123456");
+            await _servico.CriarAsync(new CriarAnimalRequest(1, "Thor", "DOG", "Pug", BirthDate, 8.5m, "MALE", "Toto", "RGA123456"));
 
         // Assert
         await act.Should().ThrowAsync<RegraDeNegocioException>();
@@ -78,7 +79,7 @@ public class AnimalServicoTests
 
         // Act
         Func<Task> act = async () =>
-            await _servico.CriarAsync(1, "Thor", "Toto", "BIRD", "Pug", BirthDate, 8.5m, "MALE", "RGA123456");
+            await _servico.CriarAsync(new CriarAnimalRequest(1, "Thor", "BIRD", "Pug", BirthDate, 8.5m, "MALE", "Toto", "RGA123456"));
 
         // Assert
         await act.Should().ThrowAsync<RegraDeNegocioException>();

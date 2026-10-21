@@ -1,30 +1,26 @@
-﻿using DotNet.Domain.Entidades;
+﻿using DotNet.Application.Dtos;
 
 namespace DotNet.Application.Servicos;
 
 public interface ICareEventServico
 {
-    Task<IEnumerable<CareEvent>> ListarAsync();
+    Task<IEnumerable<CareEventResponse>> ListarAsync();
 
-    Task<CareEvent> ObterPorIdAsync(int id);
+    Task<CareEventResponse> ObterPorIdAsync(int id);
 
-    Task<IEnumerable<CareEvent>> ListarPorAnimalIdAsync(int animalId);
+    Task<IEnumerable<CareEventResponse>> ListarPorAnimalIdAsync(int animalId);
 
-    Task<IEnumerable<CareEvent>> ListarPorStatusAsync(string status);
+    Task<IEnumerable<CareEventResponse>> ListarPorStatusAsync(string status);
 
-    Task<IEnumerable<CareEvent>> ListarPorTypeAsync(string type);
+    Task<IEnumerable<CareEventResponse>> ListarPorTypeAsync(string type);
 
-    Task<IEnumerable<CareEvent>> ListarPorAnimalIdEStatusAsync(int animalId, string status);
+    Task<IEnumerable<CareEventResponse>> ListarPorAnimalIdEStatusAsync(int animalId, string status);
 
-    Task<IEnumerable<CareEvent>> ListarAtrasadosAsync();
+    Task<IEnumerable<CareEventResponse>> ListarAtrasadosAsync();
 
-    Task<CareEvent> CriarAsync(
-        int petId, string type, string title, string? description, DateTime scheduledDate,
-        DateTime? completedDate, string status, string priority, string? notes);
+    Task<CareEventResponse> CriarAsync(CriarCareEventRequest request);
 
-    Task AtualizarAsync(
-        int id, int petId, string type, string title, string? description, DateTime scheduledDate,
-        DateTime? completedDate, string status, string priority, string? notes, bool isActive);
+    Task AtualizarAsync(int id, AtualizarCareEventRequest request);
 
     Task ConcluirAsync(int id);
 
