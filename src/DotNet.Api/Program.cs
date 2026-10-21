@@ -1,15 +1,11 @@
 using DotNet.Api.Aplicacao.Middlewares;
-using DotNet.Infrastructure.Data;
-using DotNet.Api.Infraestrutura.Health;
 using DotNet.Api.Infraestrutura.Observabilidade;
-using DotNet.Infrastructure.Repositorios;
 using DotNet.Api.Servicos;
-using Microsoft.EntityFrameworkCore;
+using DotNet.Infrastructure;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Serilog;
-using DotNet.Domain.Repositorios;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -39,27 +35,18 @@ try
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
 
-    
-    builder.Services.AddDbContext<AppDbContext>(options =>
-    {
-        options.UseOracle(builder.Configuration.GetConnectionString("OracleConnection"));
-    });
-
-    
-    builder.Services.AddScoped<IResponsavelRepositorio, ResponsavelRepositorio>();
-    builder.Services.AddScoped<IAnimalRepositorio, AnimalRepositorio>();
-    builder.Services.AddScoped<ICareEventRepositorio, CareEventRepositorio>();
+    builder.Services.AddInfrastructure(builder.Configuration);
 
     builder.Services.AddScoped<IResponsavelServico, ResponsavelServico>();
     builder.Services.AddScoped<IAnimalServico, AnimalServico>();
     builder.Services.AddScoped<ICareEventServico, CareEventServico>();
 
-    
-    builder.Services
-        .AddHealthChecks()
-        .AddCheck<OracleHealthCheck>("oracle_database");
 
+    builder.Services.AddScoped<IResponsavelServico, ResponsavelServico>();
+    builder.Services.AddScoped<IAnimalServico, AnimalServico>();
+    builder.Services.AddScoped<ICareEventServico, CareEventServico>();
     
+
     builder.Services.AddOpenTelemetry()
         .ConfigureResource(resource => resource.AddService(AplicacaoMetricas.NomeServico))
         .WithTracing(tracing => tracing

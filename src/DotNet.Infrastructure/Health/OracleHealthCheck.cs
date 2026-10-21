@@ -1,7 +1,7 @@
 ﻿using DotNet.Infrastructure.Data;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace DotNet.Api.Infraestrutura.Health;
+namespace DotNet.Infrastructure.Health;
 
 /// <summary>
 /// Health check customizado que valida a conectividade real com o banco Oracle da FIAP,
