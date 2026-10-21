@@ -32,6 +32,7 @@ public class GlobalExceptionMiddleware
         var (status, titulo) = ex switch
         {
             RecursoNaoEncontradoException => (StatusCodes.Status404NotFound, "Recurso não encontrado"),
+            NaoAutorizadoException => (StatusCodes.Status401Unauthorized, "Não autorizado"),
             RegraDeNegocioException => (StatusCodes.Status400BadRequest, "Regra de negócio violada"),
             _ => (StatusCodes.Status500InternalServerError, "Erro interno do servidor")
         };
