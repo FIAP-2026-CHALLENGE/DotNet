@@ -1,4 +1,5 @@
-﻿using DotNet.Domain.Excecoes;
+﻿using DotNet.Application.Dtos;
+using DotNet.Domain.Excecoes;
 using DotNet.Domain.Entidades;
 using DotNet.Domain.Repositorios;
 using DotNet.Application.Servicos;
@@ -28,7 +29,7 @@ public class ResponsavelServicoTests
             .ReturnsAsync(false);
 
         // Act
-        var responsavel = await _servico.CriarAsync("Mariana", "mariana@email.com", "11999999999", "12345678900");
+        var responsavel = await _servico.CriarAsync(new CriarResponsavelRequest("Mariana", "mariana@email.com", "11999999999", "12345678900"));
 
         // Assert
         responsavel.Cpf.Should().Be("12345678900");
@@ -45,7 +46,7 @@ public class ResponsavelServicoTests
 
         // Act
         Func<Task> act = async () =>
-            await _servico.CriarAsync("Mariana", "mariana@email.com", "11999999999", "12345678900");
+            await _servico.CriarAsync(new CriarResponsavelRequest("Mariana", "mariana@email.com", "11999999999", "12345678900"));
 
         // Assert
         await act.Should().ThrowAsync<RegraDeNegocioException>();

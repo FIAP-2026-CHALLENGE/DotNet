@@ -1,5 +1,5 @@
 using DotNet.Api.Infraestrutura.Observabilidade;
-using DotNet.Domain.Entidades;
+using DotNet.Application.Dtos;
 using DotNet.Application.Servicos;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,39 +20,39 @@ public class ResponsaveisController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<Responsavel>), 200)]
-    public async Task<ActionResult<IEnumerable<Responsavel>>> GetAll()
+    [ProducesResponseType(typeof(IEnumerable<ResponsavelResponse>), 200)]
+    public async Task<ActionResult<IEnumerable<ResponsavelResponse>>> GetAll()
     {
         return Ok(await _servico.ListarAsync());
     }
 
     [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(Responsavel), 200)]
+    [ProducesResponseType(typeof(ResponsavelResponse), 200)]
     [ProducesResponseType(404)]
-    public async Task<ActionResult<Responsavel>> GetById(int id)
+    public async Task<ActionResult<ResponsavelResponse>> GetById(int id)
     {
         return Ok(await _servico.ObterPorIdAsync(id));
     }
 
     [HttpGet("cpf/{cpf}")]
-    [ProducesResponseType(typeof(Responsavel), 200)]
+    [ProducesResponseType(typeof(ResponsavelResponse), 200)]
     [ProducesResponseType(404)]
-    public async Task<ActionResult<Responsavel>> GetByCpf(string cpf)
+    public async Task<ActionResult<ResponsavelResponse>> GetByCpf(string cpf)
     {
         return Ok(await _servico.ObterPorCpfAsync(cpf));
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(Responsavel), 201)]
+    [ProducesResponseType(typeof(ResponsavelResponse), 201)]
     [ProducesResponseType(400)]
-    public async Task<ActionResult<Responsavel>> Create(Responsavel responsavel)
+    public async Task<ActionResult<ResponsavelResponse>> Create(CriarResponsavelRequest request)
     {
         using var activity = AplicacaoMetricas.ActivitySource.StartActivity("CriarResponsavel");
-        activity?.SetTag("responsavel.cpf", responsavel.Cpf);
+        activity?.SetTag("responsavel.cpf", request.Cpf);
 
         HttpContext.Items["recurso"] = "responsavel";
 
-        var criado = await _servico.CriarAsync(responsavel.Name, responsavel.Email, responsavel.Phone, responsavel.Cpf);
+        var criado = await _servico.CriarAsync(request);
 
         AplicacaoMetricas.CadastrosRealizados.Add(1,
             new KeyValuePair<string, object?>("recurso", "responsavel"),
@@ -67,11 +67,9 @@ public class ResponsaveisController : ControllerBase
     [ProducesResponseType(204)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
-    public async Task<IActionResult> Update(int id, Responsavel updatedResponsavel)
+    public async Task<IActionResult> Update(int id, AtualizarResponsavelRequest request)
     {
-        await _servico.AtualizarAsync(
-            id, updatedResponsavel.Name, updatedResponsavel.Email,
-            updatedResponsavel.Phone, updatedResponsavel.Cpf, updatedResponsavel.IsActive);
+        await _servico.AtualizarAsync(id, request);
 
         _logger.LogInformation("Responsavel {ResponsavelId} atualizado com sucesso.", id);
 

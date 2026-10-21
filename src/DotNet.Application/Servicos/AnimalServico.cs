@@ -1,6 +1,7 @@
 ﻿using DotNet.Domain.Excecoes;
 using DotNet.Domain.Entidades;
 using DotNet.Domain.Repositorios;
+using DotNet.Application.Dtos;
 
 namespace DotNet.Application.Servicos;
 
@@ -15,49 +16,49 @@ public class AnimalServico : IAnimalServico
         _responsavelRepositorio = responsavelRepositorio;
     }
 
-    public async Task<IEnumerable<Animal>> ListarAsync()
+    public async Task<IEnumerable<AnimalResponse>> ListarAsync()
     {
-        return await _animalRepositorio.ObterTodosAsync();
+        return (await _animalRepositorio.ObterTodosAsync()).Select(AnimalResponse.De).ToList();
     }
 
-    public async Task<Animal> ObterPorIdAsync(int id)
+    public async Task<AnimalResponse> ObterPorIdAsync(int id)
     {
         var animal = await _animalRepositorio.ObterPorIdAsync(id);
 
-        return animal ?? throw new RecursoNaoEncontradoException($"Animal com Id {id} não foi encontrado.");
+        return AnimalResponse.De(animal ?? throw new RecursoNaoEncontradoException($"Animal com Id {id} não foi encontrado."));
     }
 
-    public async Task<IEnumerable<Animal>> ListarPorResponsavelIdAsync(int responsavelId)
+    public async Task<IEnumerable<AnimalResponse>> ListarPorResponsavelIdAsync(int responsavelId)
     {
         if (!await _responsavelRepositorio.ExisteAsync(responsavelId))
         {
             throw new RecursoNaoEncontradoException($"Responsavel com Id {responsavelId} não foi encontrado.");
         }
 
-        return await _animalRepositorio.ObterPorResponsavelIdAsync(responsavelId);
+        return (await _animalRepositorio.ObterPorResponsavelIdAsync(responsavelId)).Select(AnimalResponse.De).ToList();
     }
 
-    public async Task<IEnumerable<Animal>> ListarPorSpeciesAsync(string species)
+    public async Task<IEnumerable<AnimalResponse>> ListarPorSpeciesAsync(string species)
     {
-        return await _animalRepositorio.ObterPorSpeciesAsync(species.Trim().ToUpper());
+        return (await _animalRepositorio.ObterPorSpeciesAsync(species.Trim().ToUpper())).Select(AnimalResponse.De).ToList();
     }
 
-    public async Task<IEnumerable<Animal>> ListarPorBreedAsync(string breed)
+    public async Task<IEnumerable<AnimalResponse>> ListarPorBreedAsync(string breed)
     {
-        return await _animalRepositorio.ObterPorBreedAsync(breed);
+        return (await _animalRepositorio.ObterPorBreedAsync(breed)).Select(AnimalResponse.De).ToList();
     }
 
-    public async Task<Animal> ObterPorRgaAsync(string rga)
+    public async Task<AnimalResponse> ObterPorRgaAsync(string rga)
     {
         var animal = await _animalRepositorio.ObterPorRgaAsync(rga);
 
-        return animal ?? throw new RecursoNaoEncontradoException($"Animal com RGA {rga} não foi encontrado.");
+        return AnimalResponse.De(animal ?? throw new RecursoNaoEncontradoException($"Animal com RGA {rga} não foi encontrado."));
     }
 
-    public async Task<Animal> CriarAsync(
-        int responsavelId, string name, string nickname, string species,
-        string breed, DateTime birthDate, decimal weight, string sex, string rga)
+    public async Task<AnimalResponse> CriarAsync(CriarAnimalRequest request)
     {
+        var (responsavelId, name, species, breed, birthDate, weight, sex, nickname, rga) = request;
+
         if (!await _responsavelRepositorio.ExisteAsync(responsavelId))
         {
             throw new RegraDeNegocioException("ResponsavelId does not exist.");
@@ -72,13 +73,13 @@ public class AnimalServico : IAnimalServico
 
         await _animalRepositorio.AdicionarAsync(animal);
 
-        return animal;
+        return AnimalResponse.De(animal);
     }
 
-    public async Task AtualizarAsync(
-        int id, int responsavelId, string name, string nickname, string species,
-        string breed, DateTime birthDate, decimal weight, string sex, string rga, bool isActive)
+    public async Task AtualizarAsync(int id, AtualizarAnimalRequest request)
     {
+        var (responsavelId, name, species, breed, birthDate, weight, sex, nickname, rga, isActive) = request;
+
         var animal = await _animalRepositorio.ObterPorIdAsync(id)
             ?? throw new RecursoNaoEncontradoException($"Animal com Id {id} não foi encontrado.");
 

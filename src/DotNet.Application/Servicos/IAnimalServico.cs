@@ -1,28 +1,24 @@
-﻿using DotNet.Domain.Entidades;
+﻿using DotNet.Application.Dtos;
 
 namespace DotNet.Application.Servicos;
 
 public interface IAnimalServico
 {
-    Task<IEnumerable<Animal>> ListarAsync();
+    Task<IEnumerable<AnimalResponse>> ListarAsync();
 
-    Task<Animal> ObterPorIdAsync(int id);
+    Task<AnimalResponse> ObterPorIdAsync(int id);
 
-    Task<IEnumerable<Animal>> ListarPorResponsavelIdAsync(int responsavelId);
+    Task<IEnumerable<AnimalResponse>> ListarPorResponsavelIdAsync(int responsavelId);
 
-    Task<IEnumerable<Animal>> ListarPorSpeciesAsync(string species);
+    Task<IEnumerable<AnimalResponse>> ListarPorSpeciesAsync(string species);
 
-    Task<IEnumerable<Animal>> ListarPorBreedAsync(string breed);
+    Task<IEnumerable<AnimalResponse>> ListarPorBreedAsync(string breed);
 
-    Task<Animal> ObterPorRgaAsync(string rga);
+    Task<AnimalResponse> ObterPorRgaAsync(string rga);
 
-    Task<Animal> CriarAsync(
-        int responsavelId, string name, string nickname, string species,
-        string breed, DateTime birthDate, decimal weight, string sex, string rga);
+    Task<AnimalResponse> CriarAsync(CriarAnimalRequest request);
 
-    Task AtualizarAsync(
-        int id, int responsavelId, string name, string nickname, string species,
-        string breed, DateTime birthDate, decimal weight, string sex, string rga, bool isActive);
+    Task AtualizarAsync(int id, AtualizarAnimalRequest request);
 
     Task RemoverAsync(int id);
 }

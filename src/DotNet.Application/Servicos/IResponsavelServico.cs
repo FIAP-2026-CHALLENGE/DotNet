@@ -1,18 +1,18 @@
-﻿using DotNet.Domain.Entidades;
+﻿using DotNet.Application.Dtos;
 
 namespace DotNet.Application.Servicos;
 
 public interface IResponsavelServico
 {
-    Task<IEnumerable<Responsavel>> ListarAsync();
+    Task<IEnumerable<ResponsavelResponse>> ListarAsync();
 
-    Task<Responsavel> ObterPorIdAsync(int id);
+    Task<ResponsavelResponse> ObterPorIdAsync(int id);
 
-    Task<Responsavel> ObterPorCpfAsync(string cpf);
+    Task<ResponsavelResponse> ObterPorCpfAsync(string cpf);
 
-    Task<Responsavel> CriarAsync(string name, string email, string phone, string cpf);
+    Task<ResponsavelResponse> CriarAsync(CriarResponsavelRequest request);
 
-    Task AtualizarAsync(int id, string name, string email, string phone, string cpf, bool isActive);
+    Task AtualizarAsync(int id, AtualizarResponsavelRequest request);
 
     Task RemoverAsync(int id);
 }

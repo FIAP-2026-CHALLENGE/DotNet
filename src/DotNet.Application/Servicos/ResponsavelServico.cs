@@ -1,6 +1,7 @@
 ﻿using DotNet.Domain.Excecoes;
 using DotNet.Domain.Entidades;
 using DotNet.Domain.Repositorios;
+using DotNet.Application.Dtos;
 
 namespace DotNet.Application.Servicos;
 
@@ -13,27 +14,29 @@ public class ResponsavelServico : IResponsavelServico
         _responsavelRepositorio = responsavelRepositorio;
     }
 
-    public async Task<IEnumerable<Responsavel>> ListarAsync()
+    public async Task<IEnumerable<ResponsavelResponse>> ListarAsync()
     {
-        return await _responsavelRepositorio.ObterTodosAsync();
+        return (await _responsavelRepositorio.ObterTodosAsync()).Select(ResponsavelResponse.De).ToList();
     }
 
-    public async Task<Responsavel> ObterPorIdAsync(int id)
+    public async Task<ResponsavelResponse> ObterPorIdAsync(int id)
     {
         var responsavel = await _responsavelRepositorio.ObterPorIdAsync(id);
 
-        return responsavel ?? throw new RecursoNaoEncontradoException($"Responsavel com Id {id} não foi encontrado.");
+        return ResponsavelResponse.De(responsavel ?? throw new RecursoNaoEncontradoException($"Responsavel com Id {id} não foi encontrado."));
     }
 
-    public async Task<Responsavel> ObterPorCpfAsync(string cpf)
+    public async Task<ResponsavelResponse> ObterPorCpfAsync(string cpf)
     {
         var responsavel = await _responsavelRepositorio.ObterPorCpfAsync(cpf);
 
-        return responsavel ?? throw new RecursoNaoEncontradoException($"Responsavel com CPF {cpf} não foi encontrado.");
+        return ResponsavelResponse.De(responsavel ?? throw new RecursoNaoEncontradoException($"Responsavel com CPF {cpf} não foi encontrado."));
     }
 
-    public async Task<Responsavel> CriarAsync(string name, string email, string phone, string cpf)
+    public async Task<ResponsavelResponse> CriarAsync(CriarResponsavelRequest request)
     {
+        var (name, email, phone, cpf) = request;
+
         if (await _responsavelRepositorio.CpfExisteAsync(cpf))
         {
             throw new RegraDeNegocioException("CPF already registered.");
@@ -43,11 +46,13 @@ public class ResponsavelServico : IResponsavelServico
 
         await _responsavelRepositorio.AdicionarAsync(responsavel);
 
-        return responsavel;
+        return ResponsavelResponse.De(responsavel);
     }
 
-    public async Task AtualizarAsync(int id, string name, string email, string phone, string cpf, bool isActive)
+    public async Task AtualizarAsync(int id, AtualizarResponsavelRequest request)
     {
+        var (name, email, phone, cpf, isActive) = request;
+
         var responsavel = await _responsavelRepositorio.ObterPorIdAsync(id)
             ?? throw new RecursoNaoEncontradoException($"Responsavel com Id {id} não foi encontrado.");
 

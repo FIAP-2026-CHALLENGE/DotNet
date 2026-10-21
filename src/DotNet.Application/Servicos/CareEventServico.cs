@@ -1,6 +1,7 @@
 ﻿using DotNet.Domain.Excecoes;
 using DotNet.Domain.Entidades;
 using DotNet.Domain.Repositorios;
+using DotNet.Application.Dtos;
 
 namespace DotNet.Application.Servicos;
 
@@ -15,29 +16,29 @@ public class CareEventServico : ICareEventServico
         _animalRepositorio = animalRepositorio;
     }
 
-    public async Task<IEnumerable<CareEvent>> ListarAsync()
+    public async Task<IEnumerable<CareEventResponse>> ListarAsync()
     {
-        return await _careEventRepositorio.ObterTodosAsync();
+        return (await _careEventRepositorio.ObterTodosAsync()).Select(CareEventResponse.De).ToList();
     }
 
-    public async Task<CareEvent> ObterPorIdAsync(int id)
+    public async Task<CareEventResponse> ObterPorIdAsync(int id)
     {
         var careEvent = await _careEventRepositorio.ObterPorIdAsync(id);
 
-        return careEvent ?? throw new RecursoNaoEncontradoException($"CareEvent com Id {id} não foi encontrado.");
+        return CareEventResponse.De(careEvent ?? throw new RecursoNaoEncontradoException($"CareEvent com Id {id} não foi encontrado."));
     }
 
-    public async Task<IEnumerable<CareEvent>> ListarPorAnimalIdAsync(int animalId)
+    public async Task<IEnumerable<CareEventResponse>> ListarPorAnimalIdAsync(int animalId)
     {
         if (!await _animalRepositorio.ExisteAsync(animalId))
         {
             throw new RecursoNaoEncontradoException($"Animal com Id {animalId} não foi encontrado.");
         }
 
-        return await _careEventRepositorio.ObterPorAnimalIdAsync(animalId);
+        return (await _careEventRepositorio.ObterPorAnimalIdAsync(animalId)).Select(CareEventResponse.De).ToList();
     }
 
-    public async Task<IEnumerable<CareEvent>> ListarPorStatusAsync(string status)
+    public async Task<IEnumerable<CareEventResponse>> ListarPorStatusAsync(string status)
     {
         var normalizedStatus = status.Trim().ToUpper();
 
@@ -46,10 +47,10 @@ public class CareEventServico : ICareEventServico
             throw new RegraDeNegocioException("Status must be PENDING, COMPLETED, OVERDUE or CANCELED.");
         }
 
-        return await _careEventRepositorio.ObterPorStatusAsync(normalizedStatus);
+        return (await _careEventRepositorio.ObterPorStatusAsync(normalizedStatus)).Select(CareEventResponse.De).ToList();
     }
 
-    public async Task<IEnumerable<CareEvent>> ListarPorTypeAsync(string type)
+    public async Task<IEnumerable<CareEventResponse>> ListarPorTypeAsync(string type)
     {
         var normalizedType = type.Trim().ToUpper();
 
@@ -58,10 +59,10 @@ public class CareEventServico : ICareEventServico
             throw new RegraDeNegocioException("Invalid care event type.");
         }
 
-        return await _careEventRepositorio.ObterPorTypeAsync(normalizedType);
+        return (await _careEventRepositorio.ObterPorTypeAsync(normalizedType)).Select(CareEventResponse.De).ToList();
     }
 
-    public async Task<IEnumerable<CareEvent>> ListarPorAnimalIdEStatusAsync(int animalId, string status)
+    public async Task<IEnumerable<CareEventResponse>> ListarPorAnimalIdEStatusAsync(int animalId, string status)
     {
         if (!await _animalRepositorio.ExisteAsync(animalId))
         {
@@ -75,18 +76,18 @@ public class CareEventServico : ICareEventServico
             throw new RegraDeNegocioException("Status must be PENDING, COMPLETED, OVERDUE or CANCELED.");
         }
 
-        return await _careEventRepositorio.ObterPorAnimalIdEStatusAsync(animalId, normalizedStatus);
+        return (await _careEventRepositorio.ObterPorAnimalIdEStatusAsync(animalId, normalizedStatus)).Select(CareEventResponse.De).ToList();
     }
 
-    public async Task<IEnumerable<CareEvent>> ListarAtrasadosAsync()
+    public async Task<IEnumerable<CareEventResponse>> ListarAtrasadosAsync()
     {
-        return await _careEventRepositorio.ObterAtrasadosAsync();
+        return (await _careEventRepositorio.ObterAtrasadosAsync()).Select(CareEventResponse.De).ToList();
     }
 
-    public async Task<CareEvent> CriarAsync(
-        int petId, string type, string title, string? description, DateTime scheduledDate,
-        DateTime? completedDate, string status, string priority, string? notes)
+    public async Task<CareEventResponse> CriarAsync(CriarCareEventRequest request)
     {
+        var (petId, type, title, scheduledDate, status, priority, description, completedDate, notes) = request;
+
         if (!await _animalRepositorio.ExisteAsync(petId))
         {
             throw new RegraDeNegocioException("AnimalId does not exist.");
@@ -96,13 +97,13 @@ public class CareEventServico : ICareEventServico
 
         await _careEventRepositorio.AdicionarAsync(careEvent);
 
-        return careEvent;
+        return CareEventResponse.De(careEvent);
     }
 
-    public async Task AtualizarAsync(
-        int id, int petId, string type, string title, string? description, DateTime scheduledDate,
-        DateTime? completedDate, string status, string priority, string? notes, bool isActive)
+    public async Task AtualizarAsync(int id, AtualizarCareEventRequest request)
     {
+        var (petId, type, title, scheduledDate, status, priority, description, completedDate, notes, isActive) = request;
+
         var careEvent = await _careEventRepositorio.ObterPorIdAsync(id)
             ?? throw new RecursoNaoEncontradoException($"CareEvent com Id {id} não foi encontrado.");
 
