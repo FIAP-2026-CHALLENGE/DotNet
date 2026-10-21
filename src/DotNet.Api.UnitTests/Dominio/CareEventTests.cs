@@ -1,4 +1,5 @@
 ﻿using DotNet.Domain.Entidades;
+using DotNet.Domain.Excecoes;
 using FluentAssertions;
 using Xunit;
 
@@ -49,14 +50,14 @@ public class CareEventTests
     [Theory]
     [InlineData("EXPLOSION")]
     [InlineData("")]
-    public void Criar_ComTipoInvalido_DeveLancarArgumentException(string type)
+    public void Criar_ComTipoInvalido_DeveLancarRegraDeNegocioException(string type)
     {
         // Arrange
         Action act = () => CareEvent.Criar(
             1, type, "Título", "Descrição", ScheduledDate, null, "PENDING", "LOW", null);
 
         // Act & Assert
-        act.Should().Throw<ArgumentException>();
+        act.Should().Throw<RegraDeNegocioException>();
     }
 
     [Fact]
@@ -75,7 +76,7 @@ public class CareEventTests
     }
 
     [Fact]
-    public void Concluir_ComEventoCancelado_DeveLancarInvalidOperationException()
+    public void Concluir_ComEventoCancelado_DeveLancarRegraDeNegocioException()
     {
         // Arrange
         var careEvent = CareEvent.Criar(
@@ -85,6 +86,6 @@ public class CareEventTests
         Action act = () => careEvent.Concluir();
 
         // Assert
-        act.Should().Throw<InvalidOperationException>();
+        act.Should().Throw<RegraDeNegocioException>();
     }
 }

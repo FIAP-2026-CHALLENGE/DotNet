@@ -1,4 +1,5 @@
 namespace DotNet.Domain.Entidades;
+using DotNet.Domain.Excecoes;
 
 public class Responsavel
 {
@@ -18,7 +19,7 @@ public class Responsavel
 
     /// <summary>
     /// Cria um novo Responsavel validando as regras de domínio.
-    /// Lança <see cref="ArgumentException"/> quando algum dado obrigatório é inválido.
+    /// Lança <see cref="RegraDeNegocioException"/> quando algum dado obrigatório é inválido.
     /// </summary>
     public static Responsavel Criar(string name, string email, string phone, string cpf)
     {
@@ -52,15 +53,15 @@ public class Responsavel
     private static void ValidarDados(string name, string email, string phone, string cpf)
     {
         if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("Name is required.", nameof(name));
+            throw new RegraDeNegocioException("Name is required.");
 
         if (string.IsNullOrWhiteSpace(email))
-            throw new ArgumentException("Email is required.", nameof(email));
+            throw new RegraDeNegocioException("Email is required.");
 
         if (string.IsNullOrWhiteSpace(phone))
-            throw new ArgumentException("Phone is required.", nameof(phone));
+            throw new RegraDeNegocioException("Phone is required.");
 
         if (string.IsNullOrWhiteSpace(cpf))
-            throw new ArgumentException("Cpf is required.", nameof(cpf));
+            throw new RegraDeNegocioException("Cpf is required.");
     }
 }

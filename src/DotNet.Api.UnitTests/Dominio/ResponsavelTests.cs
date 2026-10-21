@@ -1,4 +1,5 @@
 ﻿using DotNet.Domain.Entidades;
+using DotNet.Domain.Excecoes;
 using FluentAssertions;
 using Xunit;
 
@@ -31,13 +32,13 @@ public class ResponsavelTests
     [InlineData("Mariana", "", "11999999999", "12345678900")]
     [InlineData("Mariana", "mariana@email.com", "", "12345678900")]
     [InlineData("Mariana", "mariana@email.com", "11999999999", "")]
-    public void Criar_ComDadosInvalidos_DeveLancarArgumentException(string name, string email, string phone, string cpf)
+    public void Criar_ComDadosInvalidos_DeveLancarRegraDeNegocioException(string name, string email, string phone, string cpf)
     {
         // Arrange
         Action act = () => Responsavel.Criar(name, email, phone, cpf);
 
         // Act & Assert
-        act.Should().Throw<ArgumentException>();
+        act.Should().Throw<RegraDeNegocioException>();
     }
 
     [Fact]

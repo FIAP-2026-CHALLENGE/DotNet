@@ -64,6 +64,8 @@ try
     app.UseMiddleware<CorrelationIdMiddleware>();
     app.UseSerilogRequestLogging();
 
+    app.UseMiddleware<GlobalExceptionMiddleware>();
+
     app.UseAuthorization();
 
     app.MapControllers();
@@ -73,7 +75,7 @@ try
 
     app.Run();
 }
-catch (Exception ex)
+catch (Exception ex) when (ex is not HostAbortedException)
 {
     Log.Fatal(ex, "A aplicação DotNet.Api falhou ao iniciar.");
 }

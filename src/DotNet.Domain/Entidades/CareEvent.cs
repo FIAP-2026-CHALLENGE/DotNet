@@ -1,4 +1,5 @@
 ﻿namespace DotNet.Domain.Entidades;
+using DotNet.Domain.Excecoes;
 
 public class CareEvent
 {
@@ -85,7 +86,7 @@ public class CareEvent
     {
         if (Status == "CANCELED")
         {
-            throw new InvalidOperationException("Canceled events cannot be completed.");
+            throw new RegraDeNegocioException("Canceled events cannot be completed.");
         }
 
         Status = "COMPLETED";
@@ -98,7 +99,7 @@ public class CareEvent
         if (petId <= 0 || string.IsNullOrWhiteSpace(type) || string.IsNullOrWhiteSpace(title) ||
             string.IsNullOrWhiteSpace(status) || string.IsNullOrWhiteSpace(priority))
         {
-            throw new ArgumentException("AnimalId, type, title, status and priority are required.");
+            throw new RegraDeNegocioException("AnimalId, type, title, status and priority are required.");
         }
 
         var normalizedType = type.Trim().ToUpper();
@@ -106,16 +107,16 @@ public class CareEvent
         var normalizedPriority = priority.Trim().ToUpper();
 
         if (!AllowedTypes.Contains(normalizedType))
-            throw new ArgumentException("Type must be VACCINE, DEWORMING, MEDICATION, CHECKUP, RETURN, EXAM, GROOMING, SURGERY or OTHER.", nameof(type));
+            throw new RegraDeNegocioException("Type must be VACCINE, DEWORMING, MEDICATION, CHECKUP, RETURN, EXAM, GROOMING, SURGERY or OTHER.");
 
         if (!AllowedStatuses.Contains(normalizedStatus))
-            throw new ArgumentException("Status must be PENDING, COMPLETED, OVERDUE or CANCELED.", nameof(status));
+            throw new RegraDeNegocioException("Status must be PENDING, COMPLETED, OVERDUE or CANCELED.");
 
         if (!AllowedPriorities.Contains(normalizedPriority))
-            throw new ArgumentException("Priority must be LOW, MEDIUM, HIGH or CRITICAL.", nameof(priority));
+            throw new RegraDeNegocioException("Priority must be LOW, MEDIUM, HIGH or CRITICAL.");
 
         if (scheduledDate == default)
-            throw new ArgumentException("ScheduledDate is required.", nameof(scheduledDate));
+            throw new RegraDeNegocioException("ScheduledDate is required.");
 
         return (normalizedType, normalizedStatus, normalizedPriority);
     }
