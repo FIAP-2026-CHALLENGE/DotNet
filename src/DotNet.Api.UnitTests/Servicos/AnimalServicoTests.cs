@@ -1,7 +1,7 @@
 ﻿using DotNet.Domain.Excecoes;
 using DotNet.Domain.Entidades;
 using DotNet.Domain.Repositorios;
-using DotNet.Api.Servicos;
+using DotNet.Application.Servicos;
 using FluentAssertions;
 using Moq;
 using Xunit;

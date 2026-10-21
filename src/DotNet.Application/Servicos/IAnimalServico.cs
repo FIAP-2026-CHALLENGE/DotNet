@@ -1,6 +1,6 @@
 ﻿using DotNet.Domain.Entidades;
 
-namespace DotNet.Api.Servicos;
+namespace DotNet.Application.Servicos;
 
 public interface IAnimalServico
 {

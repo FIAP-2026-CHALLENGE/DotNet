@@ -1,7 +1,7 @@
 using DotNet.Domain.Excecoes;
 using DotNet.Api.Infraestrutura.Observabilidade;
 using DotNet.Domain.Entidades;
-using DotNet.Api.Servicos;
+using DotNet.Application.Servicos;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DotNet.Api.Controllers;

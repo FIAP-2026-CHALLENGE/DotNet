@@ -1,6 +1,6 @@
 using DotNet.Api.Aplicacao.Middlewares;
 using DotNet.Api.Infraestrutura.Observabilidade;
-using DotNet.Api.Servicos;
+using DotNet.Application;
 using DotNet.Infrastructure;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -36,15 +36,7 @@ try
     builder.Services.AddSwaggerGen();
 
     builder.Services.AddInfrastructure(builder.Configuration);
-
-    builder.Services.AddScoped<IResponsavelServico, ResponsavelServico>();
-    builder.Services.AddScoped<IAnimalServico, AnimalServico>();
-    builder.Services.AddScoped<ICareEventServico, CareEventServico>();
-
-
-    builder.Services.AddScoped<IResponsavelServico, ResponsavelServico>();
-    builder.Services.AddScoped<IAnimalServico, AnimalServico>();
-    builder.Services.AddScoped<ICareEventServico, CareEventServico>();
+    builder.Services.AddApplication();
     
 
     builder.Services.AddOpenTelemetry()

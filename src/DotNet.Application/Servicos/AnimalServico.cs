@@ -2,7 +2,7 @@
 using DotNet.Domain.Entidades;
 using DotNet.Domain.Repositorios;
 
-namespace DotNet.Api.Servicos;
+namespace DotNet.Application.Servicos;
 
 public class AnimalServico : IAnimalServico
 {
