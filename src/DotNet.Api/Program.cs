@@ -64,6 +64,8 @@ try
     app.UseMiddleware<CorrelationIdMiddleware>();
     app.UseSerilogRequestLogging();
 
+    app.UseMiddleware<GlobalExceptionMiddleware>();
+
     app.UseAuthorization();
 
     app.MapControllers();
