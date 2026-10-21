@@ -70,7 +70,7 @@ public class AnimalServicoTests
     }
 
     [Fact]
-    public async Task CriarAsync_ComEspecieInvalida_DeveLancarArgumentExceptionENaoDeveAdicionar()
+    public async Task CriarAsync_ComEspecieInvalida_DeveLancarRegraDeNegocioExceptionENaoDeveAdicionar()
     {
         // Arrange
         _responsavelRepositorioMock.Setup(r => r.ExisteAsync(1)).ReturnsAsync(true);
@@ -81,7 +81,7 @@ public class AnimalServicoTests
             await _servico.CriarAsync(1, "Thor", "Toto", "BIRD", "Pug", BirthDate, 8.5m, "MALE", "RGA123456");
 
         // Assert
-        await act.Should().ThrowAsync<ArgumentException>();
+        await act.Should().ThrowAsync<RegraDeNegocioException>();
         _animalRepositorioMock.Verify(r => r.AdicionarAsync(It.IsAny<Animal>()), Times.Never);
     }
 

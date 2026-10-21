@@ -1,4 +1,5 @@
 namespace DotNet.Domain.Entidades;
+using DotNet.Domain.Excecoes;
 
 public class Animal
 {
@@ -96,14 +97,14 @@ public class Animal
             string.IsNullOrWhiteSpace(sex) ||
             weight <= 0)
         {
-            throw new ArgumentException("ResponsavelId, name, species, breed, sex and valid weight are required.");
+            throw new RegraDeNegocioException("ResponsavelId, name, species, breed, sex and valid weight are required.");
         }
 
         var normalizedSpecies = species.Trim().ToUpper();
 
         if (!AllowedSpecies.Contains(normalizedSpecies))
         {
-            throw new ArgumentException("Species must be DOG or CAT in this MVP version.", nameof(species));
+            throw new RegraDeNegocioException("Species must be DOG or CAT in this MVP version.");
         }
 
         return normalizedSpecies;

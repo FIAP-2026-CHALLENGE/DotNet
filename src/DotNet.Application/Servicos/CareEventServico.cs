@@ -121,14 +121,7 @@ public class CareEventServico : ICareEventServico
         var careEvent = await _careEventRepositorio.ObterPorIdAsync(id)
             ?? throw new RecursoNaoEncontradoException($"CareEvent com Id {id} não foi encontrado.");
 
-        try
-        {
-            careEvent.Concluir();
-        }
-        catch (InvalidOperationException ex)
-        {
-            throw new RegraDeNegocioException(ex.Message);
-        }
+        careEvent.Concluir();
 
         await _careEventRepositorio.SalvarAsync();
     }

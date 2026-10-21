@@ -1,4 +1,5 @@
 ﻿using DotNet.Domain.Entidades;
+using DotNet.Domain.Excecoes;
 using FluentAssertions;
 using Xunit;
 
@@ -26,36 +27,36 @@ public class AnimalTests
     [InlineData("BIRD")]
     [InlineData("HORSE")]
     [InlineData("")]
-    public void Criar_ComEspecieNaoPermitida_DeveLancarArgumentException(string species)
+    public void Criar_ComEspecieNaoPermitida_DeveLancarRegraDeNegocioException(string species)
     {
         // Arrange
         Action act = () => Animal.Criar(1, "Thor", "Toto", species, "Pug", BirthDate, 8.5m, "MALE", "RGA123456");
 
         // Act & Assert
-        act.Should().Throw<ArgumentException>();
+        act.Should().Throw<RegraDeNegocioException>();
     }
 
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
     [InlineData(-10.5)]
-    public void Criar_ComPesoZeradoOuNegativo_DeveLancarArgumentException(decimal weight)
+    public void Criar_ComPesoZeradoOuNegativo_DeveLancarRegraDeNegocioException(decimal weight)
     {
         // Arrange
         Action act = () => Animal.Criar(1, "Thor", "Toto", "DOG", "Pug", BirthDate, weight, "MALE", "RGA123456");
 
         // Act & Assert
-        act.Should().Throw<ArgumentException>();
+        act.Should().Throw<RegraDeNegocioException>();
     }
 
     [Fact]
-    public void Criar_ComResponsavelIdInvalido_DeveLancarArgumentException()
+    public void Criar_ComResponsavelIdInvalido_DeveLancarRegraDeNegocioException()
     {
         // Arrange
         Action act = () => Animal.Criar(0, "Thor", "Toto", "DOG", "Pug", BirthDate, 8.5m, "MALE", "RGA123456");
 
         // Act & Assert
-        act.Should().Throw<ArgumentException>();
+        act.Should().Throw<RegraDeNegocioException>();
     }
 
     [Fact]
