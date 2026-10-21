@@ -33,6 +33,8 @@ public static class DependencyInjection
         services.Configure<CredenciaisAdminOpcoes>(configuration.GetSection(CredenciaisAdminOpcoes.Secao));
         services.AddScoped<IAutenticacaoServico, AutenticacaoServico>();
 
+        services.AddAutenticacaoJwt(configuration);
+
         return services;
     }
 }
