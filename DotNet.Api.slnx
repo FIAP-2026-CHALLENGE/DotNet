@@ -1,5 +1,0 @@
-<Solution>
-  <Project Path="DotNet.Api.IntegrationTests/DotNet.Api.IntegrationTests.csproj" />
-  <Project Path="DotNet.Api.UnitTests/DotNet.Api.UnitTests.csproj" />
-  <Project Path="DotNet.Api/DotNet.Api.csproj" />
-</Solution>
