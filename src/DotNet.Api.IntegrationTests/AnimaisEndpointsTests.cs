@@ -13,7 +13,7 @@ public class AnimaisEndpointsTests
 
     public AnimaisEndpointsTests(CustomWebApplicationFactory factory)
     {
-        _client = factory.CreateClient();
+        _client = factory.CriarClienteAutenticado();
     }
 
     [Fact]

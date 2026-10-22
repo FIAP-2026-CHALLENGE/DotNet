@@ -6,6 +6,7 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Serilog;
+using Microsoft.OpenApi;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -33,7 +34,21 @@ try
 
    
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen();
+    builder.Services.AddSwaggerGen(options =>
+    {
+        options.AddSecurityDefinition("bearer", new OpenApiSecurityScheme
+        {
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            Description = "Informe apenas o token obtido em POST /api/auth/login."
+        });
+
+        options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+        {
+            [new OpenApiSecuritySchemeReference("bearer", document)] = []
+        });
+    });
 
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddApplication();
@@ -54,7 +69,7 @@ try
     var app = builder.Build();
 
     
-    if (app.Environment.IsDevelopment())
+    if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Habilitado"))
     {
         app.UseSwagger();
         app.UseSwaggerUI();
@@ -66,6 +81,7 @@ try
 
     app.UseMiddleware<GlobalExceptionMiddleware>();
 
+    app.UseAuthentication();
     app.UseAuthorization();
 
     app.MapControllers();

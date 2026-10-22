@@ -1,10 +1,12 @@
 ﻿using DotNet.Api.Infraestrutura.Observabilidade;
+using Microsoft.AspNetCore.Authorization;
 using DotNet.Application.Dtos;
 using DotNet.Application.Servicos;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DotNet.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/care-events")]
 [Produces("application/json")]

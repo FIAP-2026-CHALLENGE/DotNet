@@ -5,6 +5,8 @@ using DotNet.Infrastructure.Repositorios;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using DotNet.Application.Servicos;
+using DotNet.Infrastructure.Autenticacao;
 
 namespace DotNet.Infrastructure;
 
@@ -25,6 +27,13 @@ public static class DependencyInjection
         services
             .AddHealthChecks()
             .AddCheck<OracleHealthCheck>("oracle_database");
+
+
+        services.Configure<JwtOpcoes>(configuration.GetSection(JwtOpcoes.Secao));
+        services.Configure<CredenciaisAdminOpcoes>(configuration.GetSection(CredenciaisAdminOpcoes.Secao));
+        services.AddScoped<IAutenticacaoServico, AutenticacaoServico>();
+
+        services.AddAutenticacaoJwt(configuration);
 
         return services;
     }

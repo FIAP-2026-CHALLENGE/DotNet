@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using DotNet.Api.Infraestrutura.Observabilidade;
 using DotNet.Application.Dtos;
 using DotNet.Application.Servicos;
@@ -5,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DotNet.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/responsaveis")]
 [Produces("application/json")]
