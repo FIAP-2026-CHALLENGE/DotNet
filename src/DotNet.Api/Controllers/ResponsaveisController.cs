@@ -4,6 +4,7 @@ using DotNet.Application.Dtos;
 using DotNet.Application.Servicos;
 using Microsoft.AspNetCore.Mvc;
 using DotNet.Domain.Consultas;
+using DotNet.Api.Hateoas;
 
 namespace DotNet.Api.Controllers;
 
@@ -23,20 +24,22 @@ public class ResponsaveisController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(ResultadoPaginado<ResponsavelResponse>), 200)]
-    public async Task<ActionResult<ResultadoPaginado<ResponsavelResponse>>> GetAll(
+    [ProducesResponseType(typeof(ColecaoPaginada<Recurso<ResponsavelResponse>>), 200)]
+    public async Task<ActionResult<ColecaoPaginada<Recurso<ResponsavelResponse>>>> GetAll(
         [FromQuery] FiltroResponsavel filtro,
         [FromQuery] ParametrosPaginacao paginacao)
     {
-        return Ok(await _servico.ListarAsync(filtro, paginacao));
+        var resultado = (await _servico.ListarAsync(filtro, paginacao)).Mapear(ComLinks);
+
+        return Ok(ColecaoPaginada<Recurso<ResponsavelResponse>>.De(resultado, LinksPaginacao.Criar(Request, resultado)));
     }
 
     [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(ResponsavelResponse), 200)]
+    [ProducesResponseType(typeof(Recurso<ResponsavelResponse>), 200)]
     [ProducesResponseType(404)]
-    public async Task<ActionResult<ResponsavelResponse>> GetById(int id)
+    public async Task<ActionResult<Recurso<ResponsavelResponse>>> GetById(int id)
     {
-        return Ok(await _servico.ObterPorIdAsync(id));
+        return Ok(ComLinks(await _servico.ObterPorIdAsync(id)));
     }
 
     [HttpGet("cpf/{cpf}")]
@@ -91,5 +94,18 @@ public class ResponsaveisController : ControllerBase
         _logger.LogInformation("Responsavel {ResponsavelId} removido com sucesso.", id);
 
         return NoContent();
+    }
+
+    private Recurso<ResponsavelResponse> ComLinks(ResponsavelResponse responsavel)
+    {
+        var self = Url.Action(nameof(GetById), new { id = responsavel.Id })!;
+
+        return new Recurso<ResponsavelResponse>(responsavel,
+        [
+            new("self", self, "GET"),
+            new("update", self, "PUT"),
+            new("delete", self, "DELETE"),
+            new("animais", Url.Action("GetAll", "Animais", new { responsavelId = responsavel.Id })!, "GET")
+        ]);
     }
 }

@@ -4,6 +4,7 @@ using DotNet.Application.Dtos;
 using DotNet.Application.Servicos;
 using Microsoft.AspNetCore.Mvc;
 using DotNet.Domain.Consultas;
+using DotNet.Api.Hateoas;
 
 namespace DotNet.Api.Controllers;
 
@@ -23,22 +24,24 @@ public class CareEventsController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(ResultadoPaginado<CareEventResponse>), 200)]
+    [ProducesResponseType(typeof(ColecaoPaginada<Recurso<CareEventResponse>>), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
-    public async Task<ActionResult<ResultadoPaginado<CareEventResponse>>> GetAll(
+    public async Task<ActionResult<ColecaoPaginada<Recurso<CareEventResponse>>>> GetAll(
         [FromQuery] FiltroCareEvent filtro,
         [FromQuery] ParametrosPaginacao paginacao)
     {
-        return Ok(await _servico.ListarAsync(filtro, paginacao));
+        var resultado = (await _servico.ListarAsync(filtro, paginacao)).Mapear(ComLinks);
+
+        return Ok(ColecaoPaginada<Recurso<CareEventResponse>>.De(resultado, LinksPaginacao.Criar(Request, resultado)));
     }
 
     [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(CareEventResponse), 200)]
+    [ProducesResponseType(typeof(Recurso<CareEventResponse>), 200)]
     [ProducesResponseType(404)]
-    public async Task<ActionResult<CareEventResponse>> GetById(int id)
+    public async Task<ActionResult<Recurso<CareEventResponse>>> GetById(int id)
     {
-        return Ok(await _servico.ObterPorIdAsync(id));
+        return Ok(ComLinks(await _servico.ObterPorIdAsync(id)));
     }
 
     [HttpPost]
@@ -101,5 +104,19 @@ public class CareEventsController : ControllerBase
         _logger.LogInformation("CareEvent {CareEventId} removido com sucesso.", id);
 
         return NoContent();
+    }
+
+    private Recurso<CareEventResponse> ComLinks(CareEventResponse careEvent)
+    {
+        var self = Url.Action(nameof(GetById), new { id = careEvent.Id })!;
+
+        return new Recurso<CareEventResponse>(careEvent,
+        [
+            new("self", self, "GET"),
+            new("update", self, "PUT"),
+            new("complete", Url.Action(nameof(Complete), new { id = careEvent.Id })!, "PATCH"),
+            new("delete", self, "DELETE"),
+            new("animal", Url.Action("GetById", "Animais", new { id = careEvent.PetId })!, "GET")
+        ]);
     }
 }
