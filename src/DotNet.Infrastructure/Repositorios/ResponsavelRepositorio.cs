@@ -2,6 +2,7 @@
 using DotNet.Domain.Entidades;
 using DotNet.Domain.Repositorios;
 using Microsoft.EntityFrameworkCore;
+using DotNet.Domain.Consultas;
 
 
 namespace DotNet.Infrastructure.Repositorios;
@@ -15,9 +16,44 @@ public class ResponsavelRepositorio : IResponsavelRepositorio
         _context = context;
     }
 
-    public async Task<IEnumerable<Responsavel>> ObterTodosAsync()
+    public async Task<ResultadoPaginado<Responsavel>> ListarPaginadoAsync(FiltroResponsavel filtro, ParametrosPaginacao paginacao)
     {
-        return await _context.Responsaveis.AsNoTracking().ToListAsync();
+        var consulta = _context.Responsaveis.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(filtro.Nome))
+        {
+            var nome = filtro.Nome.Trim().ToLower();
+            consulta = consulta.Where(r => r.Name.ToLower().Contains(nome));
+        }
+
+        if (filtro.Ativo is bool ativo)
+        {
+            consulta = consulta.Where(r => r.IsActive == ativo);
+        }
+
+        var total = await consulta.CountAsync();
+
+        var itens = await Ordenar(consulta, paginacao)
+            .Skip(paginacao.Pular())
+            .Take(paginacao.TamanhoSeguro())
+            .ToListAsync();
+
+        return new ResultadoPaginado<Responsavel>(itens, paginacao.PaginaSegura(), paginacao.TamanhoSeguro(), total);
+    }
+
+    private static IQueryable<Responsavel> Ordenar(IQueryable<Responsavel> consulta, ParametrosPaginacao paginacao)
+    {
+        return (paginacao.OrdenarPor?.Trim().ToLowerInvariant(), paginacao.Decrescente) switch
+        {
+            ("name", false) => consulta.OrderBy(r => r.Name).ThenBy(r => r.Id),
+            ("name", true) => consulta.OrderByDescending(r => r.Name).ThenBy(r => r.Id),
+            ("email", false) => consulta.OrderBy(r => r.Email).ThenBy(r => r.Id),
+            ("email", true) => consulta.OrderByDescending(r => r.Email).ThenBy(r => r.Id),
+            ("createdat", false) => consulta.OrderBy(r => r.CreatedAt).ThenBy(r => r.Id),
+            ("createdat", true) => consulta.OrderByDescending(r => r.CreatedAt).ThenBy(r => r.Id),
+            (_, true) => consulta.OrderByDescending(r => r.Id),
+            _ => consulta.OrderBy(r => r.Id)
+        };
     }
 
     public async Task<Responsavel?> ObterPorIdAsync(int id)

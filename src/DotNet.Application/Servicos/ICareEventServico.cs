@@ -1,22 +1,13 @@
 ﻿using DotNet.Application.Dtos;
+using DotNet.Domain.Consultas;
 
 namespace DotNet.Application.Servicos;
 
 public interface ICareEventServico
 {
-    Task<IEnumerable<CareEventResponse>> ListarAsync();
+    Task<ResultadoPaginado<CareEventResponse>> ListarAsync(FiltroCareEvent filtro, ParametrosPaginacao paginacao);
 
     Task<CareEventResponse> ObterPorIdAsync(int id);
-
-    Task<IEnumerable<CareEventResponse>> ListarPorAnimalIdAsync(int animalId);
-
-    Task<IEnumerable<CareEventResponse>> ListarPorStatusAsync(string status);
-
-    Task<IEnumerable<CareEventResponse>> ListarPorTypeAsync(string type);
-
-    Task<IEnumerable<CareEventResponse>> ListarPorAnimalIdEStatusAsync(int animalId, string status);
-
-    Task<IEnumerable<CareEventResponse>> ListarAtrasadosAsync();
 
     Task<CareEventResponse> CriarAsync(CriarCareEventRequest request);
 

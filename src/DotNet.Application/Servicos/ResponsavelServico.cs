@@ -2,6 +2,7 @@
 using DotNet.Domain.Entidades;
 using DotNet.Domain.Repositorios;
 using DotNet.Application.Dtos;
+using DotNet.Domain.Consultas;
 
 namespace DotNet.Application.Servicos;
 
@@ -14,9 +15,11 @@ public class ResponsavelServico : IResponsavelServico
         _responsavelRepositorio = responsavelRepositorio;
     }
 
-    public async Task<IEnumerable<ResponsavelResponse>> ListarAsync()
+    public async Task<ResultadoPaginado<ResponsavelResponse>> ListarAsync(FiltroResponsavel filtro, ParametrosPaginacao paginacao)
     {
-        return (await _responsavelRepositorio.ObterTodosAsync()).Select(ResponsavelResponse.De).ToList();
+        var resultado = await _responsavelRepositorio.ListarPaginadoAsync(filtro, paginacao);
+
+        return resultado.Mapear(ResponsavelResponse.De);
     }
 
     public async Task<ResponsavelResponse> ObterPorIdAsync(int id)

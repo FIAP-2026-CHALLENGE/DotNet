@@ -3,6 +3,8 @@ using DotNet.Api.Infraestrutura.Observabilidade;
 using DotNet.Application.Dtos;
 using DotNet.Application.Servicos;
 using Microsoft.AspNetCore.Mvc;
+using DotNet.Domain.Consultas;
+using DotNet.Api.Hateoas;
 
 namespace DotNet.Api.Controllers;
 
@@ -22,40 +24,23 @@ public class AnimaisController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<AnimalResponse>), 200)]
-    public async Task<ActionResult<IEnumerable<AnimalResponse>>> GetAll()
+    [ProducesResponseType(typeof(ColecaoPaginada<Recurso<AnimalResponse>>), 200)]
+    [ProducesResponseType(404)]
+    public async Task<ActionResult<ColecaoPaginada<Recurso<AnimalResponse>>>> GetAll(
+        [FromQuery] FiltroAnimal filtro,
+        [FromQuery] ParametrosPaginacao paginacao)
     {
-        return Ok(await _servico.ListarAsync());
+        var resultado = (await _servico.ListarAsync(filtro, paginacao)).Mapear(ComLinks);
+
+        return Ok(ColecaoPaginada<Recurso<AnimalResponse>>.De(resultado, LinksPaginacao.Criar(Request, resultado)));
     }
 
     [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(AnimalResponse), 200)]
+    [ProducesResponseType(typeof(Recurso<AnimalResponse>), 200)]
     [ProducesResponseType(404)]
-    public async Task<ActionResult<AnimalResponse>> GetById(int id)
+    public async Task<ActionResult<Recurso<AnimalResponse>>> GetById(int id)
     {
-        return Ok(await _servico.ObterPorIdAsync(id));
-    }
-
-    [HttpGet("responsavel/{responsavelId:int}")]
-    [ProducesResponseType(typeof(IEnumerable<AnimalResponse>), 200)]
-    [ProducesResponseType(404)]
-    public async Task<ActionResult<IEnumerable<AnimalResponse>>> GetByResponsavelId(int responsavelId)
-    {
-        return Ok(await _servico.ListarPorResponsavelIdAsync(responsavelId));
-    }
-
-    [HttpGet("species/{species}")]
-    [ProducesResponseType(typeof(IEnumerable<AnimalResponse>), 200)]
-    public async Task<ActionResult<IEnumerable<AnimalResponse>>> GetBySpecies(string species)
-    {
-        return Ok(await _servico.ListarPorSpeciesAsync(species));
-    }
-
-    [HttpGet("breed/{breed}")]
-    [ProducesResponseType(typeof(IEnumerable<AnimalResponse>), 200)]
-    public async Task<ActionResult<IEnumerable<AnimalResponse>>> GetByBreed(string breed)
-    {
-        return Ok(await _servico.ListarPorBreedAsync(breed));
+        return Ok(ComLinks(await _servico.ObterPorIdAsync(id)));
     }
 
     [HttpGet("rga/{rga}")]
@@ -113,5 +98,19 @@ public class AnimaisController : ControllerBase
         _logger.LogInformation("Animal {AnimalId} removido com sucesso.", id);
 
         return NoContent();
+    }
+
+    private Recurso<AnimalResponse> ComLinks(AnimalResponse animal)
+    {
+        var self = Url.Action(nameof(GetById), new { id = animal.Id })!;
+
+        return new Recurso<AnimalResponse>(animal,
+        [
+            new("self", self, "GET"),
+            new("update", self, "PUT"),
+            new("delete", self, "DELETE"),
+            new("responsavel", Url.Action("GetById", "Responsaveis", new { id = animal.ResponsavelId })!, "GET"),
+            new("care-events", Url.Action("GetAll", "CareEvents", new { animalId = animal.Id })!, "GET")
+        ]);
     }
 }

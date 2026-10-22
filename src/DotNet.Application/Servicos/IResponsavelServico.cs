@@ -1,10 +1,11 @@
 ﻿using DotNet.Application.Dtos;
+using DotNet.Domain.Consultas;
 
 namespace DotNet.Application.Servicos;
 
 public interface IResponsavelServico
 {
-    Task<IEnumerable<ResponsavelResponse>> ListarAsync();
+    Task<ResultadoPaginado<ResponsavelResponse>> ListarAsync(FiltroResponsavel filtro, ParametrosPaginacao paginacao);
 
     Task<ResponsavelResponse> ObterPorIdAsync(int id);
 

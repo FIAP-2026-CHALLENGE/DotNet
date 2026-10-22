@@ -2,6 +2,7 @@
 using DotNet.Domain.Entidades;
 using DotNet.Domain.Repositorios;
 using DotNet.Application.Dtos;
+using DotNet.Domain.Consultas;
 
 namespace DotNet.Application.Servicos;
 
@@ -16,9 +17,16 @@ public class AnimalServico : IAnimalServico
         _responsavelRepositorio = responsavelRepositorio;
     }
 
-    public async Task<IEnumerable<AnimalResponse>> ListarAsync()
+    public async Task<ResultadoPaginado<AnimalResponse>> ListarAsync(FiltroAnimal filtro, ParametrosPaginacao paginacao)
     {
-        return (await _animalRepositorio.ObterTodosAsync()).Select(AnimalResponse.De).ToList();
+        if (filtro.ResponsavelId is int responsavelId && !await _responsavelRepositorio.ExisteAsync(responsavelId))
+        {
+            throw new RecursoNaoEncontradoException($"Responsavel com Id {responsavelId} não foi encontrado.");
+        }
+
+        var resultado = await _animalRepositorio.ListarPaginadoAsync(filtro, paginacao);
+
+        return resultado.Mapear(AnimalResponse.De);
     }
 
     public async Task<AnimalResponse> ObterPorIdAsync(int id)
@@ -26,26 +34,6 @@ public class AnimalServico : IAnimalServico
         var animal = await _animalRepositorio.ObterPorIdAsync(id);
 
         return AnimalResponse.De(animal ?? throw new RecursoNaoEncontradoException($"Animal com Id {id} não foi encontrado."));
-    }
-
-    public async Task<IEnumerable<AnimalResponse>> ListarPorResponsavelIdAsync(int responsavelId)
-    {
-        if (!await _responsavelRepositorio.ExisteAsync(responsavelId))
-        {
-            throw new RecursoNaoEncontradoException($"Responsavel com Id {responsavelId} não foi encontrado.");
-        }
-
-        return (await _animalRepositorio.ObterPorResponsavelIdAsync(responsavelId)).Select(AnimalResponse.De).ToList();
-    }
-
-    public async Task<IEnumerable<AnimalResponse>> ListarPorSpeciesAsync(string species)
-    {
-        return (await _animalRepositorio.ObterPorSpeciesAsync(species.Trim().ToUpper())).Select(AnimalResponse.De).ToList();
-    }
-
-    public async Task<IEnumerable<AnimalResponse>> ListarPorBreedAsync(string breed)
-    {
-        return (await _animalRepositorio.ObterPorBreedAsync(breed)).Select(AnimalResponse.De).ToList();
     }
 
     public async Task<AnimalResponse> ObterPorRgaAsync(string rga)

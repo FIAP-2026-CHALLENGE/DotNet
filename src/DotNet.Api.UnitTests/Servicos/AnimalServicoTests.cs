@@ -6,6 +6,7 @@ using DotNet.Application.Servicos;
 using FluentAssertions;
 using Moq;
 using Xunit;
+using DotNet.Domain.Consultas;
 
 namespace DotNet.Api.UnitTests.Servicos;
 
@@ -87,13 +88,13 @@ public class AnimalServicoTests
     }
 
     [Fact]
-    public async Task ListarPorResponsavelIdAsync_ComResponsavelInexistente_DeveLancarRecursoNaoEncontradoException()
+    public async Task ListarAsync_ComResponsavelInexistente_DeveLancarRecursoNaoEncontradoException()
     {
         // Arrange
         _responsavelRepositorioMock.Setup(r => r.ExisteAsync(99)).ReturnsAsync(false);
 
         // Act
-        Func<Task> act = async () => await _servico.ListarPorResponsavelIdAsync(99);
+        Func<Task> act = async () => await _servico.ListarAsync(new FiltroAnimal(ResponsavelId: 99), new ParametrosPaginacao());
 
         // Assert
         await act.Should().ThrowAsync<RecursoNaoEncontradoException>();
