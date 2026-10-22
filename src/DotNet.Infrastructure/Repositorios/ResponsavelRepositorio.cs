@@ -16,11 +16,6 @@ public class ResponsavelRepositorio : IResponsavelRepositorio
         _context = context;
     }
 
-    public async Task<IEnumerable<Responsavel>> ObterTodosAsync()
-    {
-        return await _context.Responsaveis.AsNoTracking().ToListAsync();
-    }
-
     public async Task<ResultadoPaginado<Responsavel>> ListarPaginadoAsync(FiltroResponsavel filtro, ParametrosPaginacao paginacao)
     {
         var consulta = _context.Responsaveis.AsNoTracking().AsQueryable();

@@ -5,8 +5,6 @@ namespace DotNet.Domain.Repositorios;
 
 public interface IResponsavelRepositorio
 {
-    Task<IEnumerable<Responsavel>> ObterTodosAsync();
-
     Task<Responsavel?> ObterPorIdAsync(int id);
 
     Task<Responsavel?> ObterPorCpfAsync(string cpf);

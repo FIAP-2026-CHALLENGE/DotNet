@@ -16,11 +16,6 @@ public class CareEventRepositorio : ICareEventRepositorio
         _context = context;
     }
 
-    public async Task<IEnumerable<CareEvent>> ObterTodosAsync()
-    {
-        return await _context.CareEvents.AsNoTracking().ToListAsync();
-    }
-
     public async Task<ResultadoPaginado<CareEvent>> ListarPaginadoAsync(FiltroCareEvent filtro, ParametrosPaginacao paginacao)
     {
         var consulta = _context.CareEvents.AsNoTracking().AsQueryable();
@@ -83,52 +78,6 @@ public class CareEventRepositorio : ICareEventRepositorio
     public async Task<CareEvent?> ObterPorIdAsync(int id)
     {
         return await _context.CareEvents.FirstOrDefaultAsync(e => e.Id == id);
-    }
-
-    public async Task<IEnumerable<CareEvent>> ObterPorAnimalIdAsync(int animalId)
-    {
-        return await _context.CareEvents
-            .AsNoTracking()
-            .Where(e => e.PetId == animalId)
-            .ToListAsync();
-    }
-
-    public async Task<IEnumerable<CareEvent>> ObterPorStatusAsync(string status)
-    {
-        return await _context.CareEvents
-            .AsNoTracking()
-            .Where(e => e.Status == status)
-            .ToListAsync();
-    }
-
-    public async Task<IEnumerable<CareEvent>> ObterPorTypeAsync(string type)
-    {
-        return await _context.CareEvents
-            .AsNoTracking()
-            .Where(e => e.Type == type)
-            .ToListAsync();
-    }
-
-    public async Task<IEnumerable<CareEvent>> ObterPorAnimalIdEStatusAsync(int animalId, string status)
-    {
-        return await _context.CareEvents
-            .AsNoTracking()
-            .Where(e => e.PetId == animalId && e.Status == status)
-            .ToListAsync();
-    }
-
-    public async Task<IEnumerable<CareEvent>> ObterAtrasadosAsync()
-    {
-        var today = DateTime.UtcNow.Date;
-
-        return await _context.CareEvents
-            .AsNoTracking()
-            .Where(e =>
-                e.Status == "OVERDUE" ||
-                (e.ScheduledDate.Date < today &&
-                 e.Status != "COMPLETED" &&
-                 e.Status != "CANCELED"))
-            .ToListAsync();
     }
 
     public async Task AdicionarAsync(CareEvent careEvent)

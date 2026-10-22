@@ -15,11 +15,6 @@ public class AnimalRepositorio : IAnimalRepositorio
         _context = context;
     }
 
-    public async Task<IEnumerable<Animal>> ObterTodosAsync()
-    {
-        return await _context.Animais.AsNoTracking().ToListAsync();
-    }
-
     public async Task<ResultadoPaginado<Animal>> ListarPaginadoAsync(FiltroAnimal filtro, ParametrosPaginacao paginacao)
     {
         var consulta = _context.Animais.AsNoTracking().AsQueryable();
@@ -76,32 +71,6 @@ public class AnimalRepositorio : IAnimalRepositorio
     public async Task<Animal?> ObterPorIdAsync(int id)
     {
         return await _context.Animais.FirstOrDefaultAsync(a => a.Id == id);
-    }
-
-    public async Task<IEnumerable<Animal>> ObterPorResponsavelIdAsync(int responsavelId)
-    {
-        return await _context.Animais
-            .AsNoTracking()
-            .Where(a => a.ResponsavelId == responsavelId)
-            .ToListAsync();
-    }
-
-    public async Task<IEnumerable<Animal>> ObterPorSpeciesAsync(string species)
-    {
-        return await _context.Animais
-            .AsNoTracking()
-            .Where(a => a.Species == species)
-            .ToListAsync();
-    }
-
-    public async Task<IEnumerable<Animal>> ObterPorBreedAsync(string breed)
-    {
-        var normalizedBreed = breed.ToLower();
-
-        return await _context.Animais
-            .AsNoTracking()
-            .Where(a => a.Breed.ToLower() == normalizedBreed)
-            .ToListAsync();
     }
 
     public async Task<Animal?> ObterPorRgaAsync(string rga)
