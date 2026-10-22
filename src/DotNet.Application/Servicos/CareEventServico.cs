@@ -2,6 +2,7 @@
 using DotNet.Domain.Entidades;
 using DotNet.Domain.Repositorios;
 using DotNet.Application.Dtos;
+using DotNet.Domain.Consultas;
 
 namespace DotNet.Application.Servicos;
 
@@ -16,9 +17,32 @@ public class CareEventServico : ICareEventServico
         _animalRepositorio = animalRepositorio;
     }
 
-    public async Task<IEnumerable<CareEventResponse>> ListarAsync()
+    public async Task<ResultadoPaginado<CareEventResponse>> ListarAsync(FiltroCareEvent filtro, ParametrosPaginacao paginacao)
     {
-        return (await _careEventRepositorio.ObterTodosAsync()).Select(CareEventResponse.De).ToList();
+        if (filtro.AnimalId is int animalId && !await _animalRepositorio.ExisteAsync(animalId))
+        {
+            throw new RecursoNaoEncontradoException($"Animal com Id {animalId} não foi encontrado.");
+        }
+
+        var status = filtro.Status?.Trim().ToUpper();
+
+        if (!string.IsNullOrEmpty(status) && !CareEvent.AllowedStatuses.Contains(status))
+        {
+            throw new RegraDeNegocioException("Status must be PENDING, COMPLETED, OVERDUE or CANCELED.");
+        }
+
+        var type = filtro.Type?.Trim().ToUpper();
+
+        if (!string.IsNullOrEmpty(type) && !CareEvent.AllowedTypes.Contains(type))
+        {
+            throw new RegraDeNegocioException("Invalid care event type.");
+        }
+
+        var resultado = await _careEventRepositorio.ListarPaginadoAsync(
+            filtro with { Status = status, Type = type },
+            paginacao);
+
+        return resultado.Mapear(CareEventResponse.De);
     }
 
     public async Task<CareEventResponse> ObterPorIdAsync(int id)
@@ -26,62 +50,6 @@ public class CareEventServico : ICareEventServico
         var careEvent = await _careEventRepositorio.ObterPorIdAsync(id);
 
         return CareEventResponse.De(careEvent ?? throw new RecursoNaoEncontradoException($"CareEvent com Id {id} não foi encontrado."));
-    }
-
-    public async Task<IEnumerable<CareEventResponse>> ListarPorAnimalIdAsync(int animalId)
-    {
-        if (!await _animalRepositorio.ExisteAsync(animalId))
-        {
-            throw new RecursoNaoEncontradoException($"Animal com Id {animalId} não foi encontrado.");
-        }
-
-        return (await _careEventRepositorio.ObterPorAnimalIdAsync(animalId)).Select(CareEventResponse.De).ToList();
-    }
-
-    public async Task<IEnumerable<CareEventResponse>> ListarPorStatusAsync(string status)
-    {
-        var normalizedStatus = status.Trim().ToUpper();
-
-        if (!CareEvent.AllowedStatuses.Contains(normalizedStatus))
-        {
-            throw new RegraDeNegocioException("Status must be PENDING, COMPLETED, OVERDUE or CANCELED.");
-        }
-
-        return (await _careEventRepositorio.ObterPorStatusAsync(normalizedStatus)).Select(CareEventResponse.De).ToList();
-    }
-
-    public async Task<IEnumerable<CareEventResponse>> ListarPorTypeAsync(string type)
-    {
-        var normalizedType = type.Trim().ToUpper();
-
-        if (!CareEvent.AllowedTypes.Contains(normalizedType))
-        {
-            throw new RegraDeNegocioException("Invalid care event type.");
-        }
-
-        return (await _careEventRepositorio.ObterPorTypeAsync(normalizedType)).Select(CareEventResponse.De).ToList();
-    }
-
-    public async Task<IEnumerable<CareEventResponse>> ListarPorAnimalIdEStatusAsync(int animalId, string status)
-    {
-        if (!await _animalRepositorio.ExisteAsync(animalId))
-        {
-            throw new RecursoNaoEncontradoException($"Animal com Id {animalId} não foi encontrado.");
-        }
-
-        var normalizedStatus = status.Trim().ToUpper();
-
-        if (!CareEvent.AllowedStatuses.Contains(normalizedStatus))
-        {
-            throw new RegraDeNegocioException("Status must be PENDING, COMPLETED, OVERDUE or CANCELED.");
-        }
-
-        return (await _careEventRepositorio.ObterPorAnimalIdEStatusAsync(animalId, normalizedStatus)).Select(CareEventResponse.De).ToList();
-    }
-
-    public async Task<IEnumerable<CareEventResponse>> ListarAtrasadosAsync()
-    {
-        return (await _careEventRepositorio.ObterAtrasadosAsync()).Select(CareEventResponse.De).ToList();
     }
 
     public async Task<CareEventResponse> CriarAsync(CriarCareEventRequest request)

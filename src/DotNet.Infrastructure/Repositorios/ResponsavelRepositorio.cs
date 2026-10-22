@@ -39,11 +39,11 @@ public class ResponsavelRepositorio : IResponsavelRepositorio
         var total = await consulta.CountAsync();
 
         var itens = await Ordenar(consulta, paginacao)
-            .Skip(paginacao.Pular)
-            .Take(paginacao.TamanhoSeguro)
+            .Skip(paginacao.Pular())
+            .Take(paginacao.TamanhoSeguro())
             .ToListAsync();
 
-        return new ResultadoPaginado<Responsavel>(itens, paginacao.PaginaSegura, paginacao.TamanhoSeguro, total);
+        return new ResultadoPaginado<Responsavel>(itens, paginacao.PaginaSegura(), paginacao.TamanhoSeguro(), total);
     }
 
     private static IQueryable<Responsavel> Ordenar(IQueryable<Responsavel> consulta, ParametrosPaginacao paginacao)

@@ -3,6 +3,7 @@ using DotNet.Api.Infraestrutura.Observabilidade;
 using DotNet.Application.Dtos;
 using DotNet.Application.Servicos;
 using Microsoft.AspNetCore.Mvc;
+using DotNet.Domain.Consultas;
 
 namespace DotNet.Api.Controllers;
 
@@ -22,10 +23,13 @@ public class AnimaisController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<AnimalResponse>), 200)]
-    public async Task<ActionResult<IEnumerable<AnimalResponse>>> GetAll()
+    [ProducesResponseType(typeof(ResultadoPaginado<AnimalResponse>), 200)]
+    [ProducesResponseType(404)]
+    public async Task<ActionResult<ResultadoPaginado<AnimalResponse>>> GetAll(
+        [FromQuery] FiltroAnimal filtro,
+        [FromQuery] ParametrosPaginacao paginacao)
     {
-        return Ok(await _servico.ListarAsync());
+        return Ok(await _servico.ListarAsync(filtro, paginacao));
     }
 
     [HttpGet("{id:int}")]
@@ -34,28 +38,6 @@ public class AnimaisController : ControllerBase
     public async Task<ActionResult<AnimalResponse>> GetById(int id)
     {
         return Ok(await _servico.ObterPorIdAsync(id));
-    }
-
-    [HttpGet("responsavel/{responsavelId:int}")]
-    [ProducesResponseType(typeof(IEnumerable<AnimalResponse>), 200)]
-    [ProducesResponseType(404)]
-    public async Task<ActionResult<IEnumerable<AnimalResponse>>> GetByResponsavelId(int responsavelId)
-    {
-        return Ok(await _servico.ListarPorResponsavelIdAsync(responsavelId));
-    }
-
-    [HttpGet("species/{species}")]
-    [ProducesResponseType(typeof(IEnumerable<AnimalResponse>), 200)]
-    public async Task<ActionResult<IEnumerable<AnimalResponse>>> GetBySpecies(string species)
-    {
-        return Ok(await _servico.ListarPorSpeciesAsync(species));
-    }
-
-    [HttpGet("breed/{breed}")]
-    [ProducesResponseType(typeof(IEnumerable<AnimalResponse>), 200)]
-    public async Task<ActionResult<IEnumerable<AnimalResponse>>> GetByBreed(string breed)
-    {
-        return Ok(await _servico.ListarPorBreedAsync(breed));
     }
 
     [HttpGet("rga/{rga}")]

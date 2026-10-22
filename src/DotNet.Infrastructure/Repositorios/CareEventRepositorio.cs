@@ -56,11 +56,11 @@ public class CareEventRepositorio : ICareEventRepositorio
         var total = await consulta.CountAsync();
 
         var itens = await Ordenar(consulta, paginacao)
-            .Skip(paginacao.Pular)
-            .Take(paginacao.TamanhoSeguro)
+            .Skip(paginacao.Pular())
+            .Take(paginacao.TamanhoSeguro())
             .ToListAsync();
 
-        return new ResultadoPaginado<CareEvent>(itens, paginacao.PaginaSegura, paginacao.TamanhoSeguro, total);
+        return new ResultadoPaginado<CareEvent>(itens, paginacao.PaginaSegura(), paginacao.TamanhoSeguro(), total);
     }
 
     private static IQueryable<CareEvent> Ordenar(IQueryable<CareEvent> consulta, ParametrosPaginacao paginacao)

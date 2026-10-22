@@ -49,11 +49,11 @@ public class AnimalRepositorio : IAnimalRepositorio
         var total = await consulta.CountAsync();
 
         var itens = await Ordenar(consulta, paginacao)
-            .Skip(paginacao.Pular)
-            .Take(paginacao.TamanhoSeguro)
+            .Skip(paginacao.Pular())
+            .Take(paginacao.TamanhoSeguro())
             .ToListAsync();
 
-        return new ResultadoPaginado<Animal>(itens, paginacao.PaginaSegura, paginacao.TamanhoSeguro, total);
+        return new ResultadoPaginado<Animal>(itens, paginacao.PaginaSegura(), paginacao.TamanhoSeguro(), total);
     }
 
     private static IQueryable<Animal> Ordenar(IQueryable<Animal> consulta, ParametrosPaginacao paginacao)

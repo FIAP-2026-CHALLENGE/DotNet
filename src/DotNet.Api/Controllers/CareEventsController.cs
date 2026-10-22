@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using DotNet.Application.Dtos;
 using DotNet.Application.Servicos;
 using Microsoft.AspNetCore.Mvc;
+using DotNet.Domain.Consultas;
 
 namespace DotNet.Api.Controllers;
 
@@ -22,10 +23,14 @@ public class CareEventsController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<CareEventResponse>), 200)]
-    public async Task<ActionResult<IEnumerable<CareEventResponse>>> GetAll()
+    [ProducesResponseType(typeof(ResultadoPaginado<CareEventResponse>), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<ActionResult<ResultadoPaginado<CareEventResponse>>> GetAll(
+        [FromQuery] FiltroCareEvent filtro,
+        [FromQuery] ParametrosPaginacao paginacao)
     {
-        return Ok(await _servico.ListarAsync());
+        return Ok(await _servico.ListarAsync(filtro, paginacao));
     }
 
     [HttpGet("{id:int}")]
@@ -34,46 +39,6 @@ public class CareEventsController : ControllerBase
     public async Task<ActionResult<CareEventResponse>> GetById(int id)
     {
         return Ok(await _servico.ObterPorIdAsync(id));
-    }
-
-    [HttpGet("animal/{animalId:int}")]
-    [ProducesResponseType(typeof(IEnumerable<CareEventResponse>), 200)]
-    [ProducesResponseType(404)]
-    public async Task<ActionResult<IEnumerable<CareEventResponse>>> GetByAnimalId(int animalId)
-    {
-        return Ok(await _servico.ListarPorAnimalIdAsync(animalId));
-    }
-
-    [HttpGet("status/{status}")]
-    [ProducesResponseType(typeof(IEnumerable<CareEventResponse>), 200)]
-    [ProducesResponseType(400)]
-    public async Task<ActionResult<IEnumerable<CareEventResponse>>> GetByStatus(string status)
-    {
-        return Ok(await _servico.ListarPorStatusAsync(status));
-    }
-
-    [HttpGet("type/{type}")]
-    [ProducesResponseType(typeof(IEnumerable<CareEventResponse>), 200)]
-    [ProducesResponseType(400)]
-    public async Task<ActionResult<IEnumerable<CareEventResponse>>> GetByType(string type)
-    {
-        return Ok(await _servico.ListarPorTypeAsync(type));
-    }
-
-    [HttpGet("animal/{animalId:int}/status/{status}")]
-    [ProducesResponseType(typeof(IEnumerable<CareEventResponse>), 200)]
-    [ProducesResponseType(400)]
-    [ProducesResponseType(404)]
-    public async Task<ActionResult<IEnumerable<CareEventResponse>>> GetByAnimalIdAndStatus(int animalId, string status)
-    {
-        return Ok(await _servico.ListarPorAnimalIdEStatusAsync(animalId, status));
-    }
-
-    [HttpGet("overdue")]
-    [ProducesResponseType(typeof(IEnumerable<CareEventResponse>), 200)]
-    public async Task<ActionResult<IEnumerable<CareEventResponse>>> GetOverdue()
-    {
-        return Ok(await _servico.ListarAtrasadosAsync());
     }
 
     [HttpPost]

@@ -3,6 +3,7 @@ using DotNet.Api.Infraestrutura.Observabilidade;
 using DotNet.Application.Dtos;
 using DotNet.Application.Servicos;
 using Microsoft.AspNetCore.Mvc;
+using DotNet.Domain.Consultas;
 
 namespace DotNet.Api.Controllers;
 
@@ -22,10 +23,12 @@ public class ResponsaveisController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<ResponsavelResponse>), 200)]
-    public async Task<ActionResult<IEnumerable<ResponsavelResponse>>> GetAll()
+    [ProducesResponseType(typeof(ResultadoPaginado<ResponsavelResponse>), 200)]
+    public async Task<ActionResult<ResultadoPaginado<ResponsavelResponse>>> GetAll(
+        [FromQuery] FiltroResponsavel filtro,
+        [FromQuery] ParametrosPaginacao paginacao)
     {
-        return Ok(await _servico.ListarAsync());
+        return Ok(await _servico.ListarAsync(filtro, paginacao));
     }
 
     [HttpGet("{id:int}")]

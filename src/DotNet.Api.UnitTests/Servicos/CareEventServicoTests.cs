@@ -6,6 +6,7 @@ using DotNet.Application.Servicos;
 using FluentAssertions;
 using Moq;
 using Xunit;
+using DotNet.Domain.Consultas;
 
 namespace DotNet.Api.UnitTests.Servicos;
 
@@ -87,10 +88,10 @@ public class CareEventServicoTests
     }
 
     [Fact]
-    public async Task ListarPorStatusAsync_ComStatusInvalido_DeveLancarRegraDeNegocioException()
+    public async Task ListarAsync_ComStatusInvalido_DeveLancarRegraDeNegocioException()
     {
         // Act
-        Func<Task> act = async () => await _servico.ListarPorStatusAsync("INEXISTENTE");
+        Func<Task> act = async () => await _servico.ListarAsync(new FiltroCareEvent(Status: "INEXISTENTE"), new ParametrosPaginacao());
 
         // Assert
         await act.Should().ThrowAsync<RegraDeNegocioException>();

@@ -8,9 +8,9 @@ public record ParametrosPaginacao(
 {
     public const int TamanhoMaximo = 50;
 
-    public int PaginaSegura => Math.Max(Pagina, 1);
+    public int PaginaSegura() => Math.Max(Pagina, 1);
 
-    public int TamanhoSeguro => Math.Clamp(TamanhoPagina, 1, TamanhoMaximo);
+    public int TamanhoSeguro() => Math.Clamp(TamanhoPagina, 1, TamanhoMaximo);
 
-    public int Pular => (PaginaSegura - 1) * TamanhoSeguro;
+    public int Pular() => (PaginaSegura() - 1) * TamanhoSeguro();
 }
