@@ -2,6 +2,7 @@
 using DotNet.Domain.Entidades;
 using DotNet.Domain.Repositorios;
 using Microsoft.EntityFrameworkCore;
+using DotNet.Domain.Consultas;
 
 namespace DotNet.Infrastructure.Repositorios;
 
@@ -17,6 +18,59 @@ public class AnimalRepositorio : IAnimalRepositorio
     public async Task<IEnumerable<Animal>> ObterTodosAsync()
     {
         return await _context.Animais.AsNoTracking().ToListAsync();
+    }
+
+    public async Task<ResultadoPaginado<Animal>> ListarPaginadoAsync(FiltroAnimal filtro, ParametrosPaginacao paginacao)
+    {
+        var consulta = _context.Animais.AsNoTracking().AsQueryable();
+
+        if (filtro.ResponsavelId is int responsavelId)
+        {
+            consulta = consulta.Where(a => a.ResponsavelId == responsavelId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filtro.Species))
+        {
+            var species = filtro.Species.Trim().ToUpper();
+            consulta = consulta.Where(a => a.Species == species);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filtro.Breed))
+        {
+            var breed = filtro.Breed.Trim().ToLower();
+            consulta = consulta.Where(a => a.Breed.ToLower() == breed);
+        }
+
+        if (filtro.Ativo is bool ativo)
+        {
+            consulta = consulta.Where(a => a.IsActive == ativo);
+        }
+
+        var total = await consulta.CountAsync();
+
+        var itens = await Ordenar(consulta, paginacao)
+            .Skip(paginacao.Pular)
+            .Take(paginacao.TamanhoSeguro)
+            .ToListAsync();
+
+        return new ResultadoPaginado<Animal>(itens, paginacao.PaginaSegura, paginacao.TamanhoSeguro, total);
+    }
+
+    private static IQueryable<Animal> Ordenar(IQueryable<Animal> consulta, ParametrosPaginacao paginacao)
+    {
+        return (paginacao.OrdenarPor?.Trim().ToLowerInvariant(), paginacao.Decrescente) switch
+        {
+            ("name", false) => consulta.OrderBy(a => a.Name).ThenBy(a => a.Id),
+            ("name", true) => consulta.OrderByDescending(a => a.Name).ThenBy(a => a.Id),
+            ("species", false) => consulta.OrderBy(a => a.Species).ThenBy(a => a.Id),
+            ("species", true) => consulta.OrderByDescending(a => a.Species).ThenBy(a => a.Id),
+            ("birthdate", false) => consulta.OrderBy(a => a.BirthDate).ThenBy(a => a.Id),
+            ("birthdate", true) => consulta.OrderByDescending(a => a.BirthDate).ThenBy(a => a.Id),
+            ("createdat", false) => consulta.OrderBy(a => a.CreatedAt).ThenBy(a => a.Id),
+            ("createdat", true) => consulta.OrderByDescending(a => a.CreatedAt).ThenBy(a => a.Id),
+            (_, true) => consulta.OrderByDescending(a => a.Id),
+            _ => consulta.OrderBy(a => a.Id)
+        };
     }
 
     public async Task<Animal?> ObterPorIdAsync(int id)

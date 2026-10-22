@@ -1,4 +1,5 @@
 ﻿using DotNet.Domain.Entidades;
+using DotNet.Domain.Consultas;
 
 namespace DotNet.Domain.Repositorios;
 
@@ -20,6 +21,7 @@ public interface IAnimalRepositorio
 
     Task<bool> RgaExisteAsync(string rga, int? idParaIgnorar = null);
 
+    Task<ResultadoPaginado<Animal>> ListarPaginadoAsync(FiltroAnimal filtro, ParametrosPaginacao paginacao);
     Task AdicionarAsync(Animal animal);
 
     Task RemoverAsync(Animal animal);
