@@ -1,750 +1,562 @@
-# DotNet.Api — API REST para Jornada Contínua de Cuidado Pet
+# CLYVO VET API
 
-> **Nome temporário do projeto:** `DotNet.Api`
-> **Nome comercial:** a definir pelo grupo
-> **Contexto:** Challenge FIAP 2026 — solução digital para apoiar a continuidade do cuidado veterinário, com foco em responsável, animal e eventos de cuidado.
-> **Escopo desta entrega:** 3º Sprint da disciplina *Advanced Business Development with .NET* — Monitoramento, Observabilidade e Testes Automatizados.
+API REST em ASP.NET Core para o acompanhamento contínuo do cuidado de cães e gatos.
+Entrega da **4ª Sprint** da disciplina *Advanced Business Development with .NET* (Challenge FIAP 2026, 2TDS).
 
----
+## Integrantes
 
-## 1. Visão Geral
-
-A `DotNet.Api` é uma API RESTful desenvolvida em **ASP.NET Core Web API** para representar o núcleo back-end de uma solução de acompanhamento contínuo da jornada de saúde de animais de estimação.
-
-O objetivo da API é permitir o cadastro e gerenciamento de:
-
-- Responsáveis;
-- Animais vinculados a responsáveis;
-- Eventos de cuidado vinculados aos animais.
-
-A proposta é estruturar dados essenciais para que uma aplicação web/app possa consultar, registrar e acompanhar informações relacionadas ao cuidado preventivo, terapêutico e recorrente de cada animal.
-
-Nesta versão, além do CRUD funcional, a API conta com uma arquitetura em camadas (Controller → Serviço → Repositório), Health Check de conectividade com o Oracle, logging estruturado com rastreabilidade por requisição (Correlation ID), instrumentação de observabilidade via OpenTelemetry (Tracing e Métricas), e uma suíte de testes automatizados (unitários e de integração), organizados em projetos separados por camada.
-
-Nesta primeira versão, o MVP trabalha com **cães** e **gatos**, mantendo a arquitetura preparada para evolução futura para outras espécies.
-
----
-
-## 2. Problema de Negócio
-
-A jornada de saúde do pet costuma ser fragmentada. O responsável normalmente procura atendimento veterinário apenas em situações pontuais, como vacinação, sintomas, emergência ou retorno solicitado.
-
-Essa fragmentação gera problemas como:
-
-- Esquecimento de vacinas, retornos e check-ups;
-- Baixa continuidade no tratamento;
-- Falta de histórico centralizado do animal;
-- Dificuldade para o responsável acompanhar cuidados recorrentes;
-- Menor recorrência e fidelização para clínicas e profissionais veterinários.
-
-A API proposta atua como base para uma plataforma que organiza a relação entre responsável, animal e eventos de cuidado.
-
----
-
-## 3. Objetivo do MVP
-
-O MVP da API tem como objetivo entregar um fluxo funcional mínimo:
-
-1. Cadastrar um responsável;
-2. Cadastrar um animal vinculado ao responsável;
-3. Cadastrar eventos de cuidado vinculados ao animal;
-4. Consultar a jornada de cuidado do animal;
-5. Filtrar eventos por status, tipo e animal;
-6. Persistir os dados em banco Oracle via Entity Framework Core;
-7. Expor um endpoint de Health Check para monitoramento;
-8. Registrar logs estruturados e rastreáveis por requisição;
-9. Expor métricas e tracing via OpenTelemetry;
-10. Garantir cobertura de testes automatizados nas camadas de Domínio, Serviço e Integração.
-
-Fluxo principal:
-
-```text
-Responsavel → Animal → CareEvent
-```
-
-Exemplo:
-
-```text
-Responsavel: Mariana Oliveira
-Animal: Thor
-Evento: Check-up respiratório
-Status: PENDING
-Prioridade: HIGH
-```
-
----
-
-## 4. Tecnologias Utilizadas
-
-| Tecnologia | Uso |
+| Nome | RM |
 |---|---|
-| C# / .NET 10 | Linguagem e runtime principal |
-| ASP.NET Core Web API | Criação da API REST |
-| Entity Framework Core | ORM para persistência |
-| Oracle.EntityFrameworkCore | Provider Oracle para EF Core |
-| Oracle Database | Banco de dados relacional |
-| Swagger / Swashbuckle | Documentação e testes dos endpoints |
-| User Secrets | Armazenamento local seguro da connection string |
-| Serilog (Console + File) | Logging estruturado com níveis (Information/Warning) e Correlation ID |
-| OpenTelemetry | Tracing (Spans manuais e automáticos) e Métricas customizadas |
-| Health Checks (`Microsoft.Extensions.Diagnostics.HealthChecks`) | Endpoint `/health` com verificação real de conectividade Oracle |
-| xUnit + Moq + FluentAssertions | Testes unitários de Domínio e de Serviço (padrão AAA) |
-| Microsoft.AspNetCore.Mvc.Testing | Testes de integração via `WebApplicationFactory` |
-| Microsoft.EntityFrameworkCore.InMemory | Banco em memória usado exclusivamente pelos testes de integração |
-| Git / GitHub | Versionamento do projeto |
+| Ana Carolina Pereira Fontes | 562145 |
+| João Victor Nascimento Adão | 563409 |
+| Johnny Dias Mathias Junior | 566516 |
+| Luisa Ganasevici de Abreu | 563403 |
+| Matheus Moya de Oliveira | 562822 |
 
 ---
 
-## 5. Arquitetura da Aplicação
+## Sumário
+
+1. [Visão geral](#1-visão-geral)
+2. [Tecnologias](#2-tecnologias)
+3. [Arquitetura](#3-arquitetura)
+4. [Modelo de dados](#4-modelo-de-dados)
+5. [Endpoints](#5-endpoints)
+6. [Paginação, filtros, ordenação e HATEOAS](#6-paginação-filtros-ordenação-e-hateoas)
+7. [Autenticação e autorização (JWT)](#7-autenticação-e-autorização-jwt)
+8. [Tratamento de erros](#8-tratamento-de-erros)
+9. [Monitoramento e observabilidade](#9-monitoramento-e-observabilidade)
+10. [Testes e cobertura](#10-testes-e-cobertura)
+11. [Como executar](#11-como-executar)
+12. [Evidências](#12-evidências)
+13. [Decisões técnicas](#13-decisões-técnicas)
+14. [Segurança](#14-segurança)
+15. [Mapa dos requisitos da Sprint 4](#15-mapa-dos-requisitos-da-sprint-4)
+
+---
+
+## 1. Visão geral
+
+A jornada de saúde do pet costuma ser fragmentada: o tutor só procura o veterinário em situações pontuais (vacina, sintoma, emergência), e o histórico fica espalhado. Isso gera vacinas e retornos esquecidos e pouca continuidade no tratamento.
+
+A CLYVO VET API é o núcleo back-end da solução. Ela permite:
+
+- cadastrar **responsáveis** (tutores) e os seus **animais**;
+- registrar **eventos de cuidado** (vacina, consulta, exame, cirurgia...), com status, prioridade e conclusão;
+- registrar **relatos do tutor**: textos livres sobre o dia a dia do animal ("comeu pouco e ficou deitado"), com uma lista de sintomas. Esses relatos alimentam a camada de IA do projeto (NLP), de outra disciplina.
+
+Os dados estruturados (responsáveis, animais e eventos) ficam no **Oracle**, e os relatos, que têm formato livre, ficam no **MongoDB**. O MVP atende cães e gatos, com a arquitetura preparada para outras espécies.
 
 ```text
-DotNet.Api/
-├── Controllers/
-│   ├── ResponsaveisController.cs
-│   ├── AnimaisController.cs
-│   └── CareEventsController.cs
-│
-├── Servicos/                          (regra de negócio / orquestração)
-│   ├── IResponsavelServico.cs / ResponsavelServico.cs
-│   ├── IAnimalServico.cs / AnimalServico.cs
-│   └── ICareEventServico.cs / CareEventServico.cs
-│
-├── Repositorios/                      (acesso a dado puro, sem regra)
-│   ├── IResponsavelRepositorio.cs / ResponsavelRepositorio.cs
-│   ├── IAnimalRepositorio.cs / AnimalRepositorio.cs
-│   └── ICareEventRepositorio.cs / CareEventRepositorio.cs
-│
-├── Excecoes/                          (exceções de domínio)
-│   ├── RegraDeNegocioException.cs     (→ 400 Bad Request)
-│   └── RecursoNaoEncontradoException.cs (→ 404 Not Found)
-│
-├── Aplicacao/Middlewares/
-│   └── CorrelationIdMiddleware.cs
-│
-├── Infraestrutura/
-│   ├── Health/OracleHealthCheck.cs
-│   └── Observabilidade/AplicacaoMetricas.cs
-│
-├── Data/
-│   └── AppDbContext.cs
-│
-├── Models/
-│   ├── Responsavel.cs   (validação de domínio via Criar/Atualizar)
-│   ├── Animal.cs
-│   └── CareEvent.cs
-│
-├── Migrations/
-│
-├── Program.cs
-├── appsettings.json
-└── DotNet.Api.csproj
-
-DotNet.Api.UnitTests/                  (testes de Domínio e de Serviço)
-├── Dominio/
-│   ├── ResponsavelTests.cs
-│   ├── AnimalTests.cs
-│   └── CareEventTests.cs
-└── Servicos/
-    ├── ResponsavelServicoTests.cs
-    ├── AnimalServicoTests.cs
-    └── CareEventServicoTests.cs
-
-DotNet.Api.IntegrationTests/            (testes end-to-end via HTTP)
-├── CustomWebApplicationFactory.cs
-├── IntegrationTestsCollection.cs      (Collection Fixture)
-├── HealthEndpointTests.cs
-└── AnimaisEndpointsTests.cs
+Responsável 1 ── N Animal 1 ── N Evento de cuidado     (Oracle)
+                   Animal 1 ── N Relato do tutor       (MongoDB)
 ```
-
-### Responsabilidade das pastas
-
-| Pasta/Arquivo | Responsabilidade |
-|---|---|
-| `Controllers` | Recebe requisições HTTP, delega para os Serviços, registra logs (`ILogger`) e traduz exceções em códigos HTTP |
-| `Servicos` | Orquestra regras de negócio entre entidades (ex: Animal só existe se Responsavel existir) |
-| `Repositorios` | Acesso a dado puro via EF Core, sem nenhuma regra de negócio |
-| `Excecoes` | Exceções de domínio usadas para sinalizar 400 (regra de negócio) e 404 (não encontrado) |
-| `Aplicacao/Middlewares` | Middlewares customizados (Correlation ID) |
-| `Infraestrutura/Health` | Health Check customizado de conectividade com o Oracle |
-| `Infraestrutura/Observabilidade` | ActivitySource (Tracing) e Meter/Counter (Métricas) do OpenTelemetry |
-| `Models` | Representa as entidades do domínio, com validação própria (`Criar`/`Atualizar`) |
-| `Data/AppDbContext.cs` | Configura o EF Core e o mapeamento das tabelas Oracle |
-| `Migrations` | Histórico de alterações do schema geradas pelo EF Core |
-| `Program.cs` | Configuração principal: DI, Serilog, OpenTelemetry, Health Checks e pipeline |
-| `appsettings.json` | Configurações públicas e placeholders |
-| `DotNet.Api.UnitTests` | Testes de Domínio (entidades isoladas) e de Serviço (Moq mockando Repositórios) |
-| `DotNet.Api.IntegrationTests` | Testes HTTP end-to-end via `WebApplicationFactory`, com banco EF Core InMemory |
 
 ---
 
-## 6. Modelo de Domínio
+## 2. Tecnologias
 
-Todas as entidades expõem métodos estáticos `Criar(...)` (fábrica com validação) e um método `Atualizar(...)` (revalida as mesmas regras). Isso garante que a entidade nunca exista em um estado inconsistente, independentemente de quem a esteja criando (Controller, Serviço ou um teste automatizado).
+| Tecnologia | Uso no projeto |
+|---|---|
+| C# / .NET 10 · ASP.NET Core Web API | Linguagem, runtime e API REST |
+| Entity Framework Core 10 + `Oracle.EntityFrameworkCore` | ORM e migrations no Oracle |
+| Oracle Database (FIAP) | Banco relacional: responsáveis, animais e eventos |
+| MongoDB + `MongoDB.Driver` 3.13 | Banco NoSQL: relatos do tutor |
+| JWT Bearer (`Microsoft.AspNetCore.Authentication.JwtBearer`) | Autenticação e autorização |
+| Swashbuckle (Swagger / OpenAPI) | Documentação interativa, com botão *Authorize* |
+| Serilog (console e arquivo) | Logging estruturado com Correlation ID |
+| OpenTelemetry | Tracing e métricas |
+| Health Checks | `/health` (Oracle) e `/health/mongo` (MongoDB) |
+| xUnit, Moq, FluentAssertions | Testes de unidade (padrão AAA) |
+| `WebApplicationFactory` + EF Core InMemory | Testes de integração sem banco externo |
+| coverlet | Medição de cobertura |
+| Docker | MongoDB local para desenvolvimento |
 
-### 6.1. Responsavel
+---
 
-| Campo | Tipo | Descrição |
+## 3. Arquitetura
+
+### 3.1. Diagrama da solução
+
+```mermaid
+flowchart LR
+    cliente["Cliente<br/>(app, Swagger, Postman)"]
+
+    subgraph api["CLYVO VET API (ASP.NET Core)"]
+        direction TB
+        apiL["<b>DotNet.Api</b><br/>Controllers · HATEOAS · Middlewares<br/>JWT · Swagger · Health · Serilog · OpenTelemetry"]
+        appL["<b>DotNet.Application</b><br/>Serviços (casos de uso) · DTOs"]
+        domL["<b>DotNet.Domain</b><br/>Entidades e regras · Interfaces dos repositórios<br/>Exceções · Paginação e filtros"]
+        infL["<b>DotNet.Infrastructure</b><br/>AppDbContext + repositórios EF · Repositório Mongo<br/>Autenticação JWT · Health checks"]
+        apiL --> appL --> domL
+        infL -. implementa as interfaces .-> domL
+    end
+
+    oracle[("Oracle (FIAP)<br/>T_CP_RESPONSAVEIS<br/>T_CP_ANIMAIS<br/>T_CP_CARE_EVENTS")]
+    mongo[("MongoDB<br/>coleção relatos_tutor")]
+
+    cliente -- "HTTPS + Bearer token" --> apiL
+    infL -- "EF Core" --> oracle
+    infL -- "MongoDB.Driver" --> mongo
+```
+
+### 3.2. As quatro camadas (Clean Architecture)
+
+A solução (`src/DotNet.Api.slnx`) é dividida em quatro projetos. A regra central é que **as dependências apontam para dentro**: o Domain não conhece ninguém, e a Infrastructure implementa os contratos que o Domain define.
+
+| Projeto | Responsabilidade | Depende de |
 |---|---|---|
-| `Id` | int | Identificador do responsável |
-| `Name` | string | Nome do responsável (obrigatório) |
-| `Email` | string | E-mail do responsável (obrigatório) |
-| `Phone` | string | Telefone (obrigatório) |
-| `Cpf` | string | CPF (obrigatório, único) |
-| `CreatedAt` | DateTime | Data de cadastro |
-| `IsActive` | bool | Indica se o registro está ativo |
+| `DotNet.Domain` | Entidades com as próprias validações (`Criar`/`Atualizar`), exceções de domínio, interfaces dos repositórios e tipos de consulta (`ParametrosPaginacao`, `ResultadoPaginado`, filtros) | — |
+| `DotNet.Application` | Serviços que orquestram os casos de uso e DTOs de entrada e saída | Domain |
+| `DotNet.Infrastructure` | `AppDbContext` e migrations (Oracle), repositórios EF Core, repositório e mapeamento do MongoDB, autenticação JWT e health checks | Domain, Application |
+| `DotNet.Api` | Controllers, links HATEOAS, middlewares (exceções e Correlation ID), métricas e `Program.cs` | Application, Infrastructure |
 
-### 6.2. Animal
+**Por que essa separação:**
+- as regras de negócio ficam testáveis sem banco (os serviços recebem interfaces, trocadas por mocks nos testes);
+- dá para trocar a tecnologia de persistência sem mexer nas regras. O MongoDB entrou nesta sprint sem alterar nenhuma linha do Domain antigo, só com uma interface nova e uma implementação na Infrastructure.
 
-| Campo | Tipo | Descrição |
-|---|---|---|
-| `Id` | int | Identificador do animal |
-| `ResponsavelId` | int | ID do responsável pelo animal |
-| `Name` | string | Nome do animal |
-| `Nickname` | string | Apelido do animal |
-| `Species` | string | Espécie do animal (`DOG` ou `CAT`) |
-| `Breed` | string | Raça |
-| `BirthDate` | DateTime | Data de nascimento |
-| `Weight` | decimal | Peso (deve ser maior que zero) |
-| `Sex` | string | Sexo |
-| `Rga` | string | Registro Geral Animal (único quando informado) |
-| `CreatedAt` | DateTime | Data de cadastro |
-| `IsActive` | bool | Indica se o registro está ativo |
+**Injeção de dependência por camada:** cada camada registra as próprias dependências num método de extensão (`AddApplication()` e `AddInfrastructure()`), e o `Program.cs` só chama esses métodos. O `Program.cs` não precisa conhecer as classes internas de cada camada.
 
-Espécies permitidas nesta versão:
+### 3.3. Estrutura de pastas
 
 ```text
-DOG
-CAT
-```
-
-### 6.3. CareEvent
-
-| Campo | Tipo | Descrição |
-|---|---|---|
-| `Id` | int | Identificador do evento |
-| `PetId` | int | ID do animal relacionado |
-| `Type` | string | Tipo do evento |
-| `Title` | string | Título do evento |
-| `Description` | string? | Descrição (opcional) |
-| `ScheduledDate` | DateTime | Data prevista |
-| `CompletedDate` | DateTime? | Data de conclusão |
-| `Status` | string | Status do evento |
-| `Priority` | string | Prioridade |
-| `Notes` | string? | Observações (opcional) |
-| `CreatedAt` | DateTime | Data de criação |
-| `IsActive` | bool | Indica se o registro está ativo |
-
-> **Nota técnica:** `Description` e `Notes` são opcionais (`string?`). Quando o valor recebido é vazio ou nulo, a entidade normaliza para `null` — nunca para string vazia (`""`). Isso evita um comportamento conhecido do Oracle, que trata `''` como sinônimo de `NULL` em colunas `VARCHAR2`, o que causava violação de constraint `NOT NULL` em inserções com texto vazio.
-
-Tipos permitidos:
-
-```text
-VACCINE / DEWORMING / MEDICATION / CHECKUP
-RETURN / EXAM / GROOMING / SURGERY / OTHER
-```
-
-Status permitidos:
-
-```text
-PENDING / COMPLETED / OVERDUE / CANCELED
-```
-
-Prioridades permitidas:
-
-```text
-LOW / MEDIUM / HIGH / CRITICAL
+src/
+├── DotNet.Api.slnx
+├── DotNet.Domain/
+│   ├── Entidades/          Animal, Responsavel, CareEvent, RelatoTutor
+│   ├── Repositorios/       interfaces (IAnimalRepositorio, IRelatoTutorRepositorio...)
+│   ├── Consultas/          ParametrosPaginacao, ResultadoPaginado, filtros
+│   └── Excecoes/           RegraDeNegocio (400), RecursoNaoEncontrado (404), NaoAutorizado (401)
+├── DotNet.Application/
+│   ├── Servicos/           interfaces e implementações dos serviços
+│   └── Dtos/               requests e responses por recurso
+├── DotNet.Infrastructure/
+│   ├── Data/               AppDbContext (mapeamento Oracle)
+│   ├── Migrations/         histórico de migrations do EF Core
+│   ├── Repositorios/       repositórios EF Core e RelatoTutorRepositorio (MongoDB)
+│   ├── Mongo/              mapeamento BSON da entidade RelatoTutor
+│   ├── Autenticacao/       geração e validação do JWT
+│   └── Health/             OracleHealthCheck, MongoHealthCheck
+├── DotNet.Api/
+│   ├── Controllers/        Info, Auth, Responsaveis, Animais, CareEvents, Relatos
+│   ├── Hateoas/            Recurso, ColecaoPaginada, LinkHateoas, LinksPaginacao
+│   ├── Aplicacao/          InformacoesApi e middlewares (exceções, Correlation ID)
+│   └── Infraestrutura/     métricas e tracing (OpenTelemetry)
+├── DotNet.Api.UnitTests/         Dominio, Servicos, Consultas, Autenticacao
+└── DotNet.Api.IntegrationTests/  endpoints via WebApplicationFactory
+docs/
+└── swagger.json            documento OpenAPI exportado
 ```
 
 ---
 
-## 7. Banco de Dados
+## 4. Modelo de dados
 
-A aplicação utiliza **Oracle Database** com **Entity Framework Core**.
+Toda entidade nasce por um método de fábrica `Criar(...)` e muda por `Atualizar(...)`. Os dois validam as regras antes de alterar qualquer campo, então uma entidade inválida nunca chega a existir. Quando uma regra é violada, a entidade lança `RegraDeNegocioException`, que vira **400**.
 
-### 7.1. Tabelas
+### 4.1. Oracle (relacional)
 
-| Entidade | Tabela Oracle |
+| Entidade | Tabela | Principais campos | Regras |
+|---|---|---|---|
+| `Responsavel` | `T_CP_RESPONSAVEIS` | `Id`, `Name`, `Email`, `Phone`, `Cpf`, `CreatedAt`, `IsActive` | nome, e-mail, telefone e CPF obrigatórios; CPF único |
+| `Animal` | `T_CP_ANIMAIS` | `Id`, `ResponsavelId` (FK), `Name`, `Nickname`, `Species`, `Breed`, `BirthDate`, `Weight`, `Sex`, `Rga`, `CreatedAt`, `IsActive` | responsável precisa existir; espécie `DOG` ou `CAT`; peso > 0; RGA único |
+| `CareEvent` | `T_CP_CARE_EVENTS` | `Id`, `PetId` (FK), `Type`, `Title`, `Description`, `ScheduledDate`, `CompletedDate`, `Status`, `Priority`, `Notes`, `CreatedAt`, `IsActive` | animal precisa existir; tipo, status e prioridade dentro das listas; evento cancelado não pode ser concluído |
+
+- **Tipos de evento:** `VACCINE`, `DEWORMING`, `MEDICATION`, `CHECKUP`, `RETURN`, `EXAM`, `GROOMING`, `SURGERY`, `OTHER`
+- **Status:** `PENDING`, `COMPLETED`, `OVERDUE`, `CANCELED`
+- **Prioridade:** `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`
+
+**Migrations aplicadas** (conferidas na `__EFMigrationsHistory` do Oracle e com `dotnet ef migrations list`, sem nenhuma pendente):
+
+| Migration | O que faz |
 |---|---|
-| `Responsavel` | `T_CP_RESPONSAVEIS` |
-| `Animal` | `T_CP_ANIMAIS` |
-| `CareEvent` | `T_CP_CARE_EVENTS` |
+| `20260516225751_InitialCreate` | Cria as tabelas |
+| `20260517175752_AddForeignKeys` | Adiciona as chaves estrangeiras |
+| `20260524175656_RenameEntitiesToAnimalAndResponsavel` | Renomeia entidades e tabelas |
+| `20260906194515_AllowNullNotesAndDescriptionOnCareEvents` | Permite `NULL` em `NOTES` e `DESCRIPTION` |
 
-O EF Core também mantém a tabela interna:
+### 4.2. MongoDB (NoSQL): relatos do tutor
 
-```text
-__EFMigrationsHistory
-```
-
-### 7.2. Relacionamentos
-
-```text
-T_CP_RESPONSAVEIS  1 ─── N  T_CP_ANIMAIS
-T_CP_ANIMAIS       1 ─── N  T_CP_CARE_EVENTS
-```
-
-### 7.3. Migrations aplicadas
-
-| Migration | Descrição |
-|---|---|
-| `20260516225751_InitialCreate` | Criação inicial das tabelas |
-| `20260517175752_AddForeignKeys` | Adição das chaves estrangeiras |
-| `20260524175656_RenameEntitiesToAnimalAndResponsavel` | Renomeação das entidades e tabelas |
-| `20260906194515_AllowNullNotesAndDescriptionOnCareEvents` | Permite `NULL` nas colunas `NOTES` e `DESCRIPTION` de `T_CP_CARE_EVENTS` |
-
-### 7.4. Configuração de Boolean no Oracle
-
-Os campos booleanos foram mapeados como `NUMBER(1)`:
-
-```text
-true  → 1
-false → 0
-```
-
-> **Nota técnica:** consultas LINQ que usam `.AnyAsync(...)` geram, neste provider Oracle, literais `True`/`False` na cláusula SQL — o que o Oracle não reconhece (`ORA-00904: identificador inválido`). Por isso, os métodos de verificação de existência (`ExisteAsync`, `CpfExisteAsync`, `RgaExisteAsync`) nos Repositórios usam `.CountAsync(...) > 0` no lugar de `.AnyAsync(...)`.
-
----
-
-## 8. Configuração de Credenciais
-
-O arquivo `appsettings.json` contém apenas um placeholder:
+Banco `clyvo_vet`, coleção `relatos_tutor`. Exemplo de documento real gravado pela API:
 
 ```json
 {
-  "ConnectionStrings": {
-    "OracleConnection": "User Id=RMXXXXXX;Password=SUA_SENHA;Data Source=oracle.fiap.com.br:1521/orcl;"
-  },
-  "AllowedHosts": "*"
+  "_id": ObjectId("6ade55674b3ff71740d83d30"),
+  "animalId": 1,
+  "texto": "Comeu pouco hoje e ficou deitado",
+  "sintomas": ["apatia", "falta de apetite"],
+  "dataOcorrencia": ISODate("2026-10-24T20:00:00.000Z"),
+  "criadoEm": ISODate("2026-10-25T19:15:51.652Z")
 }
 ```
 
-A connection string real deve ser configurada via **User Secrets**:
+| Campo | Tipo | Regras |
+|---|---|---|
+| `_id` | ObjectId | gerado pelo MongoDB; na entidade, é uma `string` |
+| `animalId` | int | o animal precisa existir no Oracle |
+| `texto` | string | obrigatório, até 2000 caracteres, sem espaços nas pontas |
+| `sintomas` | array de string | opcional; normalizado (minúsculas, sem vazios e sem repetidos) |
+| `dataOcorrencia` | data (UTC) | não pode estar no futuro |
+| `criadoEm` | data (UTC) | preenchida pela API |
 
-```bash
-dotnet user-secrets init
-dotnet user-secrets set "ConnectionStrings:OracleConnection" "User Id=SEU_RM;Password=SUA_SENHA_REAL;Data Source=oracle.fiap.com.br:1521/orcl;"
-```
-
-> **Atenção:** comandos `dotnet ef` (migrations) rodam em ambiente **Production** por padrão e não carregam os User Secrets. Sempre defina o ambiente antes de rodar:
-> ```powershell
-> $env:ASPNETCORE_ENVIRONMENT="Development"
-> ```
+**Por que os relatos ficam no MongoDB:**
+- **Formato livre:** cada relato tem texto aberto e uma lista de sintomas de tamanho variável. No Oracle, a lista exigiria uma tabela a mais com FK. No MongoDB, ela é um array dentro do próprio documento, e o filtro "relatos com o sintoma X" é uma única condição (`AnyEq`), sem JOIN.
+- **Pensado para a IA:** os relatos são a entrada do NLP do projeto, e o formato de documento acompanha a evolução desse dado (novos campos podem surgir sem migration).
+- **Integração entre os bancos:** como não existe FK entre Oracle e MongoDB, o `RelatoTutorServico` confere no Oracle se o animal existe antes de gravar o relato. Cada relato também traz um link HATEOAS `animal`, que leva do documento no MongoDB ao animal no Oracle.
 
 ---
 
-## 9. Como Executar o Projeto
+## 5. Endpoints
 
-### 9.1. Pré-requisitos
+Base local: `http://localhost:5296` · Swagger: `/swagger` · Documento OpenAPI exportado: [`docs/swagger.json`](docs/swagger.json)
 
-- .NET SDK 10 instalado
-- Oracle Database acessível
-- Credenciais Oracle válidas
-- Git
-- Insomnia, Postman ou Swagger para testes
+🔒 = exige `Authorization: Bearer <token>`
 
-### 9.2. Clonar o repositório
+### 5.1. Raiz, autenticação e health
+
+| Método | Rota | Descrição | Retornos |
+|---|---|---|---|
+| GET | `/` | Nome, versão e ambiente da API, com links para os recursos | 200 |
+| POST | `/api/auth/login` | Recebe usuário e senha e devolve o token JWT | 200, 401 |
+| GET | `/health` | Saúde da API e conexão real com o Oracle | 200, 503 |
+| GET | `/health/mongo` | Conexão real com o MongoDB | 200, 503 |
+
+### 5.2. Responsáveis 🔒
+
+| Método | Rota | Descrição | Retornos |
+|---|---|---|---|
+| GET | `/api/responsaveis` | Lista paginada (filtros: `nome`, `ativo`) | 200 |
+| GET | `/api/responsaveis/{id}` | Busca por Id | 200, 404 |
+| GET | `/api/responsaveis/cpf/{cpf}` | Busca por CPF | 200, 404 |
+| POST | `/api/responsaveis` | Cria | 201, 400 |
+| PUT | `/api/responsaveis/{id}` | Atualiza | 204, 400, 404 |
+| DELETE | `/api/responsaveis/{id}` | Remove | 204, 404 |
+
+### 5.3. Animais 🔒
+
+| Método | Rota | Descrição | Retornos |
+|---|---|---|---|
+| GET | `/api/animais` | Lista paginada (filtros: `species`, `breed`, `responsavelId`, `ativo`) | 200, 404 |
+| GET | `/api/animais/{id}` | Busca por Id | 200, 404 |
+| GET | `/api/animais/rga/{rga}` | Busca por RGA | 200, 404 |
+| POST | `/api/animais` | Cria | 201, 400 |
+| PUT | `/api/animais/{id}` | Atualiza | 204, 400, 404 |
+| DELETE | `/api/animais/{id}` | Remove | 204, 404 |
+
+### 5.4. Eventos de cuidado 🔒
+
+| Método | Rota | Descrição | Retornos |
+|---|---|---|---|
+| GET | `/api/care-events` | Lista paginada (filtros: `animalId`, `status`, `type`, `atrasados`) | 200, 400, 404 |
+| GET | `/api/care-events/{id}` | Busca por Id | 200, 404 |
+| POST | `/api/care-events` | Cria | 201, 400 |
+| PUT | `/api/care-events/{id}` | Atualiza | 204, 400, 404 |
+| PATCH | `/api/care-events/{id}/complete` | Conclui o evento | 204, 400, 404 |
+| DELETE | `/api/care-events/{id}` | Remove | 204, 404 |
+
+### 5.5. Relatos do tutor (MongoDB) 🔒
+
+| Método | Rota | Descrição | Retornos |
+|---|---|---|---|
+| GET | `/api/relatos` | Lista paginada (filtros: `animalId`, `sintoma`) | 200, 404 |
+| GET | `/api/relatos/{id}` | Busca por Id | 200, 404 |
+| POST | `/api/relatos` | Cria | 201, 400 |
+| PUT | `/api/relatos/{id}` | Atualiza texto, sintomas e data | 204, 400, 404 |
+| DELETE | `/api/relatos/{id}` | Remove | 204, 404 |
+
+### 5.6. Exemplos de corpo (POST)
+
+```json
+// POST /api/responsaveis
+{ "name": "Mariana Oliveira", "email": "mariana.oliveira@email.com", "phone": "11977776666", "cpf": "45678912300" }
+
+// POST /api/animais
+{ "responsavelId": 1, "name": "Thor", "nickname": "Toto", "species": "DOG", "breed": "Pug",
+  "birthDate": "2020-05-10T00:00:00", "weight": 8.5, "sex": "MALE", "rga": "RGA123456" }
+
+// POST /api/care-events
+{ "petId": 1, "type": "CHECKUP", "title": "Check-up respiratório", "scheduledDate": "2026-11-10T10:00:00",
+  "status": "PENDING", "priority": "HIGH", "description": "Avaliação preventiva", "notes": null }
+
+// POST /api/relatos
+{ "animalId": 1, "texto": "Comeu pouco hoje e ficou deitado", "dataOcorrencia": "2026-10-24T20:00:00Z",
+  "sintomas": ["apatia", "falta de apetite"] }
+```
+
+---
+
+## 6. Paginação, filtros, ordenação e HATEOAS
+
+Todas as listagens recebem os mesmos parâmetros na query string:
+
+| Parâmetro | Padrão | Regra |
+|---|---|---|
+| `pagina` | 1 | menor que 1 vira 1 |
+| `tamanhoPagina` | 10 | limitado entre 1 e **50** |
+| `ordenarPor` | Id | só campos da whitelist (abaixo) |
+| `decrescente` | `false` | inverte a ordem |
+
+| Recurso | Valores aceitos em `ordenarPor` |
+|---|---|
+| Responsáveis | `name`, `email`, `createdAt` |
+| Animais | `name`, `species`, `birthDate`, `createdAt` |
+| Eventos de cuidado | `scheduledDate`, `status`, `priority`, `createdAt` |
+| Relatos | `dataOcorrencia`, `criadoEm` |
+
+A ordenação **sempre desempata por Id**, para a mesma linha não aparecer em duas páginas. No Oracle, esse desempate também é obrigatório, porque o `OFFSET/FETCH` exige um `ORDER BY` estável.
+
+**HATEOAS:** a coleção traz `itens` e `links` de navegação (`self`, `first`, `prev`, `next`, `last`), que mantêm os filtros da URL. Cada item traz `dados` e os links das ações possíveis. O link `complete` de um evento só aparece quando ele ainda pode ser concluído. Os links são relativos, para funcionarem igual em qualquer host (local ou nuvem). Exemplo real de `GET /api/relatos?animalId=1&sintoma=APATIA&ordenarPor=dataOcorrencia&decrescente=true`:
+
+```json
+{
+  "itens": [
+    {
+      "dados": { "id": "6ade55674b3ff71740d83d30", "animalId": 1, "texto": "Comeu pouco hoje e ficou deitado",
+                 "sintomas": ["apatia", "falta de apetite"], "dataOcorrencia": "2026-10-24T20:00:00Z",
+                 "criadoEm": "2026-10-25T19:15:51.652Z" },
+      "links": [
+        { "rel": "self",   "href": "/api/relatos/6ade55674b3ff71740d83d30", "method": "GET" },
+        { "rel": "update", "href": "/api/relatos/6ade55674b3ff71740d83d30", "method": "PUT" },
+        { "rel": "delete", "href": "/api/relatos/6ade55674b3ff71740d83d30", "method": "DELETE" },
+        { "rel": "animal", "href": "/api/animais/1", "method": "GET" }
+      ]
+    }
+  ],
+  "pagina": 1, "tamanhoPagina": 10, "totalItens": 1, "totalPaginas": 1,
+  "links": [
+    { "rel": "self",  "href": "/api/relatos?animalId=1&sintoma=APATIA&ordenarPor=dataOcorrencia&decrescente=true&pagina=1&tamanhoPagina=10", "method": "GET" },
+    { "rel": "first", "href": "/api/relatos?animalId=1&sintoma=APATIA&ordenarPor=dataOcorrencia&decrescente=true&pagina=1&tamanhoPagina=10", "method": "GET" },
+    { "rel": "last",  "href": "/api/relatos?animalId=1&sintoma=APATIA&ordenarPor=dataOcorrencia&decrescente=true&pagina=1&tamanhoPagina=10", "method": "GET" }
+  ]
+}
+```
+
+A raiz `GET /` também é um ponto de entrada HATEOAS: ela lista os links de login, de cada recurso e dos health checks.
+
+---
+
+## 7. Autenticação e autorização (JWT)
+
+1. `POST /api/auth/login` com `{ "usuario": "...", "senha": "..." }` devolve `{ "accessToken": "...", "tokenType": "Bearer", "expiraEm": "..." }`.
+2. As rotas de recurso exigem o cabeçalho `Authorization: Bearer <accessToken>`. Sem o token, a resposta é **401**.
+3. A raiz `/`, o login e os health checks são anônimos.
+
+No Swagger, use o botão **Authorize** e cole só o token.
+
+- As credenciais de acesso ficam na configuração (`Auth:Usuario` e `Auth:Senha`), sem tabela de usuários, porque o escopo do MVP tem um único perfil administrativo.
+- A comparação da senha é feita em tempo constante (`CryptographicOperations.FixedTimeEquals`), para não vazar informação pelo tempo de resposta.
+- Sem credenciais configuradas, o login sempre recusa.
+- O token é assinado com `Jwt:Key` (pelo menos 32 caracteres) e expira em 60 minutos.
+
+---
+
+## 8. Tratamento de erros
+
+Os controllers **não têm try/catch**. As regras lançam exceções de domínio, e o `GlobalExceptionMiddleware` converte cada uma num `ProblemDetails` (RFC 9457) padronizado:
+
+| Exceção | Status | Título |
+|---|---|---|
+| `RegraDeNegocioException` | 400 | Regra de negócio violada |
+| `NaoAutorizadoException` | 401 | Não autorizado |
+| `RecursoNaoEncontradoException` | 404 | Recurso não encontrado |
+| qualquer outra | 500 | Erro interno do servidor (sem expor detalhes) |
+
+Exemplo real (`POST /api/relatos` com um animal inexistente):
+
+```json
+{ "title": "Regra de negócio violada", "status": 400, "detail": "Animal com Id 999999 não existe.",
+  "instance": "/api/relatos", "traceId": "0HNPIOA8EJIU0:00000001" }
+```
+
+Um Id de relato em formato inválido (por exemplo `/api/relatos/abc`) responde **404**, e não 500. O repositório valida o formato do ObjectId antes de consultar o MongoDB.
+
+---
+
+## 9. Monitoramento e observabilidade
+
+### 9.1. Health checks
+
+| Rota | O que verifica | Respostas |
+|---|---|---|
+| `/health` | Conexão real com o Oracle (`Database.CanConnectAsync`) | `Healthy` 200 / `Unhealthy` 503 |
+| `/health/mongo` | Comando `ping` no MongoDB, com timeout de 5 s | `Healthy` 200 / `Unhealthy` 503 |
+
+As duas rotas são separadas por *tags*. Assim, uma falha no MongoDB não derruba o `/health`, que é a rota usada pelo pipeline de deploy para verificar a aplicação.
+
+### 9.2. Logging estruturado (Serilog)
+
+- Saída no console e em arquivo diário (`logs/app-AAAAMMDD.log`).
+- Toda requisição recebe um **Correlation ID** (cabeçalho `X-Correlation-ID`, gerado se não vier), presente em todas as linhas de log daquela requisição.
+- Os logs são estruturados, com campos pesquisáveis: `"Relato {RelatoId} criado com sucesso para Animal {AnimalId}."`
+
+Formato de uma linha no console (`[hora nível] (CorrelationId) mensagem`):
+
+```text
+[19:15:51 INF] (<correlation-id>) Relato 6ade55674b3ff71740d83d30 criado com sucesso para Animal 1.
+```
+
+Falhas de regra de negócio saem em `Warning`, e erros inesperados em `Error`, com a exceção completa.
+
+### 9.3. Tracing e métricas (OpenTelemetry)
+
+- Spans automáticos de toda requisição HTTP, mais spans manuais nos cadastros (`CriarAnimal`, `CriarRelatoTutor`...), com tags de domínio.
+- O contador `clyvovet.cadastros.total` é marcado por `recurso` e `status`, o que permite calcular a taxa de erro por recurso.
+- Exportados para o console.
+
+---
+
+## 10. Testes e cobertura
+
+**130 testes**, todos passando: 102 de unidade e 28 de integração. Todos seguem o padrão **AAA** (Arrange, Act, Assert) e a nomenclatura `Metodo_Cenario_ResultadoEsperado`.
+
+| Projeto | O que cobre | Como |
+|---|---|---|
+| `DotNet.Api.UnitTests` | Entidades (regras de validação), serviços (todos os caminhos de criar, obter, atualizar, remover e listar), paginação e autenticação | xUnit + Moq (repositórios mockados) + FluentAssertions |
+| `DotNet.Api.IntegrationTests` | Fluxo HTTP completo: CRUD de relatos, 401 sem token, paginação, ordenação, links HATEOAS, health, raiz e Swagger | `WebApplicationFactory` + Collection Fixture |
+
+Os testes de integração **não usam banco externo**:
+- o Oracle é trocado por um EF Core InMemory;
+- o MongoDB é trocado por um repositório em memória (`RelatoTutorRepositorioEmMemoria`), que cumpre o mesmo contrato `IRelatoTutorRepositorio`.
+
+Por isso, o `dotnet test` roda em qualquer máquina e no pipeline de CI, sem credenciais.
+
+**Cobertura** (linhas, medida com coverlet nos testes de unidade):
+
+| Camada | Cobertura |
+|---|---|
+| Domain | **97%** |
+| Application | **96%** (100% dos branches) |
+
+```bash
+cd src
+dotnet test DotNet.Api.slnx
+dotnet test DotNet.Api.UnitTests/DotNet.Api.UnitTests.csproj --collect:"XPlat Code Coverage"
+```
+
+O segundo comando gera um `coverage.cobertura.xml` em `TestResults/`, que pode ser aberto em qualquer visualizador de cobertura (por exemplo, o ReportGenerator).
+
+---
+
+## 11. Como executar
+
+### 11.1. Pré-requisitos
+
+- .NET SDK 10
+- Acesso ao Oracle da FIAP (usuário e senha do RM)
+- Docker (para o MongoDB local) ou uma instância de MongoDB acessível
+
+### 11.2. Passo a passo
 
 ```bash
 git clone https://github.com/FIAP-2026-CHALLENGE/DotNet
-cd DotNet/DotNet.Api
+cd DotNet/src
+
+# 1. MongoDB local
+docker run -d --name mongo-clyvo -p 27017:27017 mongo:7
+
+# 2. Segredos (nunca em arquivo versionado)
+dotnet user-secrets set "ConnectionStrings:OracleConnection" "User Id=<RM>;Password=<senha>;Data Source=oracle.fiap.com.br:1521/orcl;" --project DotNet.Api
+dotnet user-secrets set "Auth:Usuario" "<usuario>" --project DotNet.Api
+dotnet user-secrets set "Auth:Senha" "<senha>" --project DotNet.Api
+dotnet user-secrets set "Jwt:Key" "<chave aleatória com 32+ caracteres>" --project DotNet.Api
+
+# 3. Migrations (as tabelas já existem no Oracle; confira antes com "migrations list")
+$env:ASPNETCORE_ENVIRONMENT="Development"   # PowerShell: o dotnet ef roda em Production por padrão
+dotnet ef migrations list --project DotNet.Infrastructure --startup-project DotNet.Api
+dotnet ef database update --project DotNet.Infrastructure --startup-project DotNet.Api
+
+# 4. API
+dotnet run --project DotNet.Api
 ```
 
-### 9.3. Restaurar dependências
-
-```bash
-dotnet restore
-```
-
-### 9.4. Configurar User Secrets
-
-```bash
-dotnet user-secrets init
-dotnet user-secrets set "ConnectionStrings:OracleConnection" "User Id=SEU_RM;Password=SUA_SENHA_REAL;Data Source=oracle.fiap.com.br:1521/orcl;"
-```
-
-### 9.5. Aplicar migrations
-
-```powershell
-$env:ASPNETCORE_ENVIRONMENT="Development"
-dotnet ef database update
-```
-
-### 9.6. Executar a API
-
-```bash
-dotnet run
-```
-
-A aplicação sobe em:
-
-```text
-http://localhost:5296
-```
-
-Swagger disponível em:
-
-```text
-http://localhost:5296/swagger
-```
-
-Health Check disponível em:
-
-```text
-http://localhost:5296/health
-```
-
----
-
-## 10. Endpoints da API
-
-Base URL local: `http://localhost:5296`
-
-### 10.1. Responsaveis
-
-| Método | Rota | Descrição | Retornos |
-|---|---|---|---|
-| GET | `/api/responsaveis` | Lista todos os responsáveis | 200 |
-| GET | `/api/responsaveis/{id}` | Busca responsável por ID | 200, 404 |
-| GET | `/api/responsaveis/cpf/{cpf}` | Busca responsável por CPF | 200, 404 |
-| POST | `/api/responsaveis` | Cria um responsável | 201, 400 |
-| PUT | `/api/responsaveis/{id}` | Atualiza um responsável | 204, 400, 404 |
-| DELETE | `/api/responsaveis/{id}` | Remove um responsável | 204, 404 |
-
-#### Exemplo de POST `/api/responsaveis`
-
-```json
-{
-  "name": "Mariana Oliveira",
-  "email": "mariana.oliveira@email.com",
-  "phone": "11977776666",
-  "cpf": "45678912300"
-}
-```
-
-### 10.2. Animais
-
-| Método | Rota | Descrição | Retornos |
-|---|---|---|---|
-| GET | `/api/animais` | Lista todos os animais | 200 |
-| GET | `/api/animais/{id}` | Busca animal por ID | 200, 404 |
-| GET | `/api/animais/responsavel/{responsavelId}` | Lista animais de um responsável | 200, 404 |
-| GET | `/api/animais/species/{species}` | Lista animais por espécie | 200 |
-| GET | `/api/animais/breed/{breed}` | Lista animais por raça | 200 |
-| GET | `/api/animais/rga/{rga}` | Busca animal por RGA | 200, 404 |
-| POST | `/api/animais` | Cria um animal | 201, 400 |
-| PUT | `/api/animais/{id}` | Atualiza um animal | 204, 400, 404 |
-| DELETE | `/api/animais/{id}` | Remove um animal | 204, 404 |
-
-#### Exemplo de POST `/api/animais`
-
-```json
-{
-  "responsavelId": 1,
-  "name": "Thor",
-  "nickname": "Toto",
-  "species": "DOG",
-  "breed": "Pug",
-  "birthDate": "2020-05-10T00:00:00",
-  "weight": 8.5,
-  "sex": "MALE",
-  "rga": "RGA123456"
-}
-```
-
-### 10.3. CareEvents
-
-| Método | Rota | Descrição | Retornos |
-|---|---|---|---|
-| GET | `/api/care-events` | Lista todos os eventos | 200 |
-| GET | `/api/care-events/{id}` | Busca evento por ID | 200, 404 |
-| GET | `/api/care-events/animal/{animalId}` | Lista eventos de um animal | 200, 404 |
-| GET | `/api/care-events/status/{status}` | Lista eventos por status | 200, 400 |
-| GET | `/api/care-events/type/{type}` | Lista eventos por tipo | 200, 400 |
-| GET | `/api/care-events/animal/{animalId}/status/{status}` | Lista eventos de um animal por status | 200, 400, 404 |
-| GET | `/api/care-events/overdue` | Lista eventos atrasados | 200 |
-| POST | `/api/care-events` | Cria evento de cuidado | 201, 400 |
-| PUT | `/api/care-events/{id}` | Atualiza evento de cuidado | 204, 400, 404 |
-| PATCH | `/api/care-events/{id}/complete` | Conclui evento de cuidado | 204, 400, 404 |
-| DELETE | `/api/care-events/{id}` | Remove evento de cuidado | 204, 404 |
-
-#### Exemplo de POST `/api/care-events`
-
-```json
-{
-  "petId": 1,
-  "type": "CHECKUP",
-  "title": "Check-up respiratório",
-  "description": "Avaliação preventiva por conta da raça Pug.",
-  "scheduledDate": "2026-06-10T10:00:00",
-  "completedDate": null,
-  "status": "PENDING",
-  "priority": "HIGH",
-  "notes": "Pugs podem exigir atenção respiratória preventiva."
-}
-```
-
-### 10.4. Diagnóstico
-
-| Método | Rota | Descrição | Retornos |
-|---|---|---|---|
-| GET | `/health` | Verifica a saúde da aplicação (conectividade real com o Oracle) | 200, 503 |
-
----
-
-## 11. Retornos HTTP Implementados
-
-| Código | Uso |
+| URL | O que é |
 |---|---|
-| `200 OK` | Consulta realizada com sucesso |
-| `201 Created` | Recurso criado com sucesso |
-| `204 No Content` | Atualização, remoção ou conclusão realizada com sucesso |
-| `400 Bad Request` | Dados inválidos ou regra de negócio violada |
-| `404 Not Found` | Recurso não encontrado |
-| `503 Service Unavailable` | Health Check indicando falha de conectividade com o Oracle |
+| `http://localhost:5296/` | Raiz (nome, versão e links) |
+| `http://localhost:5296/swagger` | Swagger (em Development) |
+| `http://localhost:5296/health` e `/health/mongo` | Health checks |
 
----
+### 11.3. Configuração por variáveis de ambiente (deploy)
 
-## 12. Fluxo de Teste Recomendado
+Em produção (por exemplo, no Azure Container Instance), as mesmas chaves entram como variáveis de ambiente, com `__` no lugar de `:`:
 
-1. Verificar a saúde da aplicação via `GET /health`;
-2. Criar um responsável via `POST /api/responsaveis`;
-3. Listar responsáveis via `GET /api/responsaveis`;
-4. Criar um animal usando o `id` do responsável via `POST /api/animais`;
-5. Listar animais do responsável via `GET /api/animais/responsavel/{responsavelId}`;
-6. Criar um evento de cuidado usando o `id` do animal via `POST /api/care-events`;
-7. Listar eventos do animal via `GET /api/care-events/animal/{animalId}`;
-8. Filtrar eventos por status via `GET /api/care-events/status/PENDING`;
-9. Concluir um evento via `PATCH /api/care-events/{id}/complete`;
-10. Consultar novamente o evento concluído;
-11. Validar os registros no Oracle;
-12. Conferir, no terminal onde a API está rodando, os logs estruturados (com Correlation ID e níveis Information/Warning) e os blocos de Tracing/Métricas do OpenTelemetry.
-
----
-
-## 13. Consultas SQL para Validação
-
-```sql
-SELECT * FROM T_CP_RESPONSAVEIS;
-SELECT * FROM T_CP_ANIMAIS;
-SELECT * FROM T_CP_CARE_EVENTS;
-```
-
-Validação completa com JOIN:
-
-```sql
-SELECT
-    r.ID AS RESPONSAVEL_ID,
-    r.NAME AS RESPONSAVEL_NAME,
-    a.ID AS ANIMAL_ID,
-    a.NAME AS ANIMAL_NAME,
-    a.SPECIES,
-    a.BREED,
-    ce.ID AS EVENT_ID,
-    ce.TYPE,
-    ce.TITLE,
-    ce.STATUS,
-    ce.PRIORITY,
-    ce.SCHEDULED_DATE
-FROM T_CP_RESPONSAVEIS r
-INNER JOIN T_CP_ANIMAIS a
-    ON a.RESPONSAVEL_ID = r.ID
-INNER JOIN T_CP_CARE_EVENTS ce
-    ON ce.PET_ID = a.ID
-ORDER BY r.ID, a.ID, ce.ID;
-```
-
----
-
-## 14. Regras de Negócio Implementadas
-
-### Responsaveis
-- Nome, e-mail, telefone e CPF são obrigatórios;
-- Não permite CPF duplicado.
-
-### Animais
-- Um animal só pode ser criado se o responsável existir;
-- Nome, espécie, raça, sexo e peso válido (maior que zero) são obrigatórios;
-- O MVP aceita apenas `DOG` e `CAT`;
-- Não permite RGA duplicado quando informado.
-
-### Eventos de Cuidado
-- Um evento só pode ser criado se o animal existir;
-- Tipo, título, status, prioridade e data prevista são obrigatórios; descrição e observações são opcionais;
-- O tipo, status e prioridade devem estar dentro das listas permitidas;
-- Eventos cancelados não podem ser concluídos;
-- Ao concluir um evento, o status é alterado para `COMPLETED` e a data de conclusão é preenchida automaticamente, se ainda não informada.
-
----
-
-## 15. Arquitetura em Camadas (Repository + Service)
-
-A aplicação segue uma separação explícita de responsabilidades:
-
-- **Controllers** — recebem a requisição HTTP, chamam o Serviço correspondente, registram logs da operação e traduzem o resultado (ou a exceção capturada) em um código de status HTTP. Não conhecem `AppDbContext` nem regra de negócio.
-- **Serviços** (`Servicos/`) — orquestram as regras de negócio, muitas vezes consultando mais de um Repositório (ex: `AnimalServico` valida se o `ResponsavelId` existe antes de criar um Animal). Lançam `RegraDeNegocioException` ou `RecursoNaoEncontradoException` quando uma regra é violada.
-- **Repositórios** (`Repositorios/`) — acesso a dado puro via EF Core, sem nenhuma regra de negócio embutida.
-- **Models** — validam a si mesmas através de métodos estáticos `Criar(...)` e de instância `Atualizar(...)`, lançando `ArgumentException` quando os dados são inválidos. Isso garante que a entidade nunca exista em estado inconsistente, independentemente de quem a está criando.
-
-Essa separação existe, sobretudo, para permitir testes de Serviço isolados via `Mock<IRepositorio>` (Moq), sem depender do Oracle real.
-
----
-
-## 16. Health Checks & Diagnósticos
-
-A aplicação expõe o endpoint nativo do ASP.NET Core, via `Microsoft.Extensions.Diagnostics.HealthChecks`, em:
-
-```text
-GET /health
-```
-
-O health check customizado (`OracleHealthCheck`, em `Infraestrutura/Health`) executa `Database.CanConnectAsync()` contra o Oracle real da FIAP a cada chamada — ou seja, o `/health` só retorna `Healthy` se a API conseguir abrir conexão de fato com o banco, não é um "ping" estático.
-
-| Cenário | Resposta |
+| Variável | Para quê |
 |---|---|
-| Oracle acessível | `200 OK` — `Healthy` |
-| Oracle inacessível / credencial inválida | `503 Service Unavailable` — `Unhealthy` |
-
-**Como monitorar:** basta fazer `GET /health` periodicamente (de um load balancer, de um script de monitoramento, ou manualmente via Swagger/Insomnia/Postman). O endpoint não exige autenticação e responde rapidamente, sendo seguro para checagens automáticas frequentes.
-
----
-
-## 17. Logging Estruturado & Correlation ID
-
-O logging é feito com **Serilog**, configurado em `Program.cs`, com dois destinos (sinks):
-
-- **Console** — para acompanhamento em tempo real durante o desenvolvimento e no vídeo de demonstração;
-- **Arquivo rotativo diário** — `logs/app-{data}.log`, útil para auditoria e para anexar evidência.
-
-### Níveis de log utilizados
-
-- **Information**: emitido automaticamente pelo `UseSerilogRequestLogging()` para toda requisição, e manualmente pelos Controllers a cada operação de escrita bem-sucedida (`_logger.LogInformation(...)` em `Create`, `Update`, `Delete` e `Complete`).
-- **Warning**: emitido manualmente pelos Controllers sempre que uma exceção de negócio é capturada (`ArgumentException` ou `RegraDeNegocioException`), sinalizando uma requisição rejeitada por dado inválido ou regra violada.
-- **Error/Fatal**: reservado para exceções não tratadas que sobem além dos Controllers (ex: falha de conectividade inesperada com o Oracle), capturadas pelo bloco `try/catch/finally` do Serilog em `Program.cs`.
-
-### Correlation ID
-
-Cada requisição HTTP recebe (ou propaga, se já vier no header) um **Correlation ID**, injetado pelo `CorrelationIdMiddleware` (`Aplicacao/Middlewares`) no `LogContext` do Serilog. Isso significa que **todo log emitido durante aquela requisição** — inclusive o log automático de acesso e os logs manuais dos Controllers — carrega o mesmo Correlation ID, permitindo rastrear o fluxo completo de uma requisição específica no meio de milhares de linhas de log.
-
-- Header de entrada/saída: `X-Correlation-ID`
-- Se o cliente não enviar o header, a API gera um novo `Guid` automaticamente e devolve na resposta.
-
-Exemplo de linha de log gerada:
-
-```text
-[14:32:07 INF] (3f9a2b91-...) Animal 12 (Thor) criado com sucesso para Responsavel 4.
-[14:33:02 WRN] (7a1c9d44-...) Falha ao criar Animal: ResponsavelId does not exist.
-```
+| `ConnectionStrings__OracleConnection` | Oracle |
+| `ConnectionStrings__MongoConnection` | MongoDB (padrão: `mongodb://localhost:27017`) |
+| `Mongo__Database` | Nome do banco no MongoDB (padrão: `clyvo_vet`) |
+| `Jwt__Key` | Chave de assinatura do token |
+| `Auth__Usuario` / `Auth__Senha` | Credenciais do login |
+| `Swagger__Habilitado` | `true` para expor o Swagger fora de Development |
 
 ---
 
-## 18. Observabilidade com OpenTelemetry
+## 12. Evidências
 
-Instrumentação manual centralizada em `Infraestrutura/Observabilidade/AplicacaoMetricas.cs`:
+Resultados do roteiro manual executado contra a API local, com o Oracle da FIAP e o MongoDB em Docker:
 
-- **Tracing**: um `ActivitySource` nomeado `ClyvoVet.Api`, usado para abrir **Spans customizados** nos endpoints de escrita (`POST /api/responsaveis`, `POST /api/animais`, `POST /api/care-events`), com tags relevantes do domínio (ex: `animal.species`, `careEvent.petId`). Além disso, `AddAspNetCoreInstrumentation()` e `AddHttpClientInstrumentation()` geram Spans automáticos para toda requisição HTTP recebida/feita pela aplicação, incluindo tempo de resposta.
-- **Métricas**: um `Counter<long>` (`clyvovet.cadastros.total`) incrementado a cada cadastro/evento processado, com as tags `recurso` (responsavel/animal/care_event) e `status` (sucesso/falha) — permitindo derivar taxa de erro por tipo de recurso.
-
-Os dados de Tracing e Métricas são exportados para o **Console** (`AddConsoleExporter()`), visíveis diretamente no terminal onde a API está rodando.
-
----
-
-## 19. Testes Automatizados
-
-Os testes estão organizados em **dois projetos separados**, por camada:
-
-| Projeto | Pastas internas | O que testa | Dependências |
-|---|---|---|---|
-| `DotNet.Api.UnitTests` | `Dominio/`, `Servicos/` | Regras de validação das entidades e regras de orquestração dos Serviços | `Mock<IRepositorio>` via Moq (nenhuma dependência externa nos testes de Domínio) |
-| `DotNet.Api.IntegrationTests` | raiz do projeto | Fluxo HTTP completo (Controller → Serviço → Repositório) | `WebApplicationFactory<Program>` + EF Core InMemory |
-
-Todos os testes seguem o padrão **AAA (Arrange, Act, Assert)** e a nomenclatura `MetodoTestado_Cenario_ResultadoEsperado` (ex: `CriarAsync_ComCpfDuplicado_DeveLancarRegraDeNegocioExceptionENaoDeveAdicionar`).
-
-### Fixtures e Collection Fixtures
-
-O projeto `DotNet.Api.IntegrationTests` utiliza uma **Collection Fixture** (`IntegrationTestsCollection`, com `[CollectionDefinition("Integration Tests")]` e `ICollectionFixture<CustomWebApplicationFactory>`), garantindo que a mesma instância da aplicação em memória (e do mesmo banco InMemory) seja compartilhada entre as classes `HealthEndpointTests` e `AnimaisEndpointsTests`, evitando subir a aplicação mais de uma vez por execução da suíte.
-
-Os testes de integração **não tocam no Oracle real** — a `CustomWebApplicationFactory` substitui o `AppDbContext` por um provider EF Core InMemory isolado por execução, para que `dotnet test` rode de forma determinística, rápida e sem depender de rede ou de credenciais do Oracle da FIAP.
-
-> **Nota sobre autenticação:** autenticação/autorização (JWT ou Identity) é um requisito da 4ª Sprint do Challenge, ainda não entregue. Por isso, os testes de integração desta entrega cobrem o fluxo HTTP completo — sucesso, validação de regra de negócio e recurso não encontrado — sem cenários de autenticação, consistente com o escopo da 3ª Sprint.
-
-### Como executar os testes
-
-```bash
-cd DotNet.Api.UnitTests
-dotnet test
-
-cd ../DotNet.Api.IntegrationTests
-dotnet test
-```
-
-Para ver o detalhamento de cada teste no console:
-
-```bash
-dotnet test --logger "console;verbosity=detailed"
-```
-
----
-
-## 20. Limitações Conhecidas
-
-- O nome `DotNet.Api` é temporário;
-- O MVP trabalha apenas com cães e gatos;
-- Autenticação/autorização (JWT/Identity) ainda não implementada — requisito da 4ª Sprint do Challenge;
-- Ainda não há DTOs separados para entrada e saída (os Controllers recebem/retornam as próprias entidades de domínio);
-- Sem front-end integrado nesta entrega.
-
----
-
-## 21. Comandos Úteis
-
-```bash
-# Build
-dotnet build
-
-# Run
-dotnet run
-
-# Criar migration (defina o ambiente antes, no PowerShell)
-$env:ASPNETCORE_ENVIRONMENT="Development"
-dotnet ef migrations add NomeDaMigration
-
-# Aplicar migration
-dotnet ef database update
-
-# Listar migrations
-dotnet ef migrations list
-
-# Listar User Secrets
-dotnet user-secrets list
-
-# Rodar os testes unitários (Domínio + Serviço)
-cd ../DotNet.Api.UnitTests
-dotnet test
-
-# Rodar os testes de integração
-cd ../DotNet.Api.IntegrationTests
-dotnet test
-```
-
----
-
-## 22. Status Atual
-
-| Item | Status |
+| Operação | Resultado |
 |---|---|
-| API ASP.NET Core | ✅ Concluído |
-| Swagger | ✅ Concluído |
-| CRUD de Responsavel | ✅ Concluído |
-| CRUD de Animal | ✅ Concluído |
-| CRUD de CareEvent | ✅ Concluído |
-| Rotas parametrizadas | ✅ Concluído |
-| Retornos HTTP principais | ✅ Concluído |
-| Oracle + EF Core | ✅ Concluído |
-| Migrations | ✅ Concluído |
-| Arquitetura Repository + Service | ✅ Concluído |
-| Health Check | ✅ Concluído |
-| Logging estruturado (Information/Warning) + Correlation ID | ✅ Concluído |
-| OpenTelemetry (Tracing + Métricas) | ✅ Concluído |
-| Testes de Domínio (`DotNet.Api.UnitTests`) | ✅ Concluído |
-| Testes de Serviço com Moq (`DotNet.Api.UnitTests`) | ✅ Concluído |
-| Testes de Integração com Collection Fixture (`DotNet.Api.IntegrationTests`) | ✅ Concluído |
-| README técnico | ✅ Concluído |
+| `POST /api/auth/login` | 200, token JWT emitido |
+| `POST /api/relatos` (texto com espaços e sintomas repetidos) | 201, texto aparado e sintomas `["apatia", "falta de apetite"]` |
+| Consulta direta no MongoDB (`db.relatos_tutor.find()`) | documento gravado, com `_id: ObjectId(...)` e datas `ISODate` |
+| `GET /api/relatos/{id}` | 200, com os links `self`, `update`, `delete` e `animal` |
+| `GET /api/relatos?animalId=1&sintoma=APATIA` | 200, `totalItens: 1` (filtro sem diferenciar maiúsculas) |
+| `PUT /api/relatos/{id}` | 204 |
+| `GET /api/relatos/abc` | 404 |
+| `GET /api/relatos` sem token | 401 |
+| `POST /api/relatos` com animal inexistente | 400 (`ProblemDetails`) |
+| `DELETE /api/relatos/{id}` e depois `GET` | 204 e depois 404 |
+| `GET /health` e `GET /health/mongo` | `Healthy` e `Healthy` |
+
+Os mesmos cenários estão automatizados em `RelatosEndpointsTests`.
+
+<!-- Prints opcionais: salvar em docs/evidencias/ e referenciar aqui, por exemplo:
+![Relato gravado no MongoDB](docs/evidencias/01-relato-mongodb.png) -->
+
+---
+
+## 13. Decisões técnicas
+
+| Decisão | Motivo |
+|---|---|
+| Tipos de consulta (`ParametrosPaginacao`, filtros) no **Domain** | As interfaces dos repositórios ficam no Domain e usam esses tipos. Se os tipos ficassem no Application, o Domain passaria a depender de outra camada. |
+| Id do relato como `string` na entidade | O `ObjectId` vem do pacote do MongoDB. Mantê-lo fora do Domain preserva a regra de dependência, e a conversão fica no mapeamento BSON da Infrastructure. |
+| `MongoClient` como **Singleton**, criado sob demanda | O cliente mantém um pool de conexões e deve ser único por aplicação. Criado só no primeiro uso, ele não impede a API de subir se o MongoDB estiver indisponível: só os relatos e o `/health/mongo` falham. |
+| Repositório em memória nos testes, e não Null Object | O MongoDB precisa funcionar de verdade na aplicação. Um Null Object faria o POST "dar certo" sem gravar nada. O falso existe só nos testes. |
+| `ordenarPor` inválido ordena por Id (sem 400) | É uma escolha tolerante: o cliente recebe a lista em vez de um erro, e o contrato fica estável para o front-end. A whitelist continua impedindo ordenar por campos não expostos. |
+| Sem *Unit of Work* | Nenhuma operação grava em dois repositórios ao mesmo tempo, então cada repositório confirma a própria gravação. O padrão entraria se surgisse um caso de uso com gravação conjunta. |
+| `.CountAsync(...) > 0` no lugar de `.AnyAsync()` | Neste provider Oracle, o `AnyAsync` gera SQL inválido (`ORA-00904`). |
+| Textos opcionais normalizados para `null` | O Oracle trata `''` como `NULL` em `VARCHAR2`. Normalizar evita violar `NOT NULL` com texto vazio. |
+| Login por configuração, sem tabela de usuários | O MVP tem um único perfil administrativo. A troca para o Identity fica isolada atrás de `IAutenticacaoServico`. |
+
+---
+
+## 14. Segurança
+
+- **Nenhuma credencial versionada:** o `appsettings.json` só tem placeholders. No desenvolvimento, os segredos ficam no `dotnet user-secrets`; no deploy, em variáveis de ambiente protegidas.
+- O Swagger em Production só aparece com `Swagger:Habilitado=true`.
+- Erros 500 não expõem stack trace ao cliente. O detalhe fica só no log, ligado ao Correlation ID.
+- O `.gitignore` cobre `bin/`, `obj/`, `.env`, logs e resultados de teste.
+
+---
+
+## 15. Mapa dos requisitos da Sprint 4
+
+| Requisito | Onde está |
+|---|---|
+| Clean Architecture com separação de camadas | [3. Arquitetura](#3-arquitetura) |
+| SOLID e Clean Code | Interfaces por camada (inversão de dependência), serviços com responsabilidade única, mensagens padronizadas, [13. Decisões](#13-decisões-técnicas) |
+| Injeção de dependência | `AddApplication()` / `AddInfrastructure()` ([3.2](#32-as-quatro-camadas-clean-architecture)) |
+| Tratamento global de exceções | [8. Tratamento de erros](#8-tratamento-de-erros) |
+| Swagger/OpenAPI atualizado | `/swagger` e [`docs/swagger.json`](docs/swagger.json) |
+| Paginação, ordenação e filtros | [6](#6-paginação-filtros-ordenação-e-hateoas) |
+| HATEOAS | [6](#6-paginação-filtros-ordenação-e-hateoas) |
+| Autenticação e autorização com JWT | [7](#7-autenticação-e-autorização-jwt) |
+| EF Core com migrations aplicadas (Oracle) | [4.1](#41-oracle-relacional) |
+| MongoDB integrado | [4.2](#42-mongodb-nosql-relatos-do-tutor) e [5.5](#55-relatos-do-tutor-mongodb-) |
+| Repositórios concretos (Repository) | `DotNet.Infrastructure/Repositorios` |
+| Health checks | [9.1](#91-health-checks) |
+| Logging estruturado | [9.2](#92-logging-estruturado-serilog) |
+| Testes de unidade e de integração (AAA, xUnit) | [10](#10-testes-e-cobertura) |
+| Cobertura de Domain e Application | [10](#10-testes-e-cobertura): 97% e 96% |
+| README, diagrama e endpoints | este arquivo, [3.1](#31-diagrama-da-solução) e [5](#5-endpoints) |
