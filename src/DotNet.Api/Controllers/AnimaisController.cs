@@ -1,0 +1,116 @@
+using Microsoft.AspNetCore.Authorization;
+using DotNet.Api.Infraestrutura.Observabilidade;
+using DotNet.Application.Dtos;
+using DotNet.Application.Servicos;
+using Microsoft.AspNetCore.Mvc;
+using DotNet.Domain.Consultas;
+using DotNet.Api.Hateoas;
+
+namespace DotNet.Api.Controllers;
+
+[Authorize]
+[ApiController]
+[Route("api/animais")]
+[Produces("application/json")]
+public class AnimaisController : ControllerBase
+{
+    private readonly IAnimalServico _servico;
+    private readonly ILogger<AnimaisController> _logger;
+
+    public AnimaisController(IAnimalServico servico, ILogger<AnimaisController> logger)
+    {
+        _servico = servico;
+        _logger = logger;
+    }
+
+    [HttpGet]
+    [ProducesResponseType(typeof(ColecaoPaginada<Recurso<AnimalResponse>>), 200)]
+    [ProducesResponseType(404)]
+    public async Task<ActionResult<ColecaoPaginada<Recurso<AnimalResponse>>>> GetAll(
+        [FromQuery] FiltroAnimal filtro,
+        [FromQuery] ParametrosPaginacao paginacao)
+    {
+        var resultado = (await _servico.ListarAsync(filtro, paginacao)).Mapear(ComLinks);
+
+        return Ok(ColecaoPaginada<Recurso<AnimalResponse>>.De(resultado, LinksPaginacao.Criar(Request, resultado)));
+    }
+
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(Recurso<AnimalResponse>), 200)]
+    [ProducesResponseType(404)]
+    public async Task<ActionResult<Recurso<AnimalResponse>>> GetById(int id)
+    {
+        return Ok(ComLinks(await _servico.ObterPorIdAsync(id)));
+    }
+
+    [HttpGet("rga/{rga}")]
+    [ProducesResponseType(typeof(AnimalResponse), 200)]
+    [ProducesResponseType(404)]
+    public async Task<ActionResult<AnimalResponse>> GetByRga(string rga)
+    {
+        return Ok(await _servico.ObterPorRgaAsync(rga));
+    }
+
+    [HttpPost]
+    [ProducesResponseType(typeof(AnimalResponse), 201)]
+    [ProducesResponseType(400)]
+    public async Task<ActionResult<AnimalResponse>> Create(CriarAnimalRequest request)
+    {
+        using var activity = AplicacaoMetricas.ActivitySource.StartActivity("CriarAnimal");
+        activity?.SetTag("animal.responsavelId", request.ResponsavelId);
+        activity?.SetTag("animal.species", request.Species);
+
+        HttpContext.Items["recurso"] = "animal";
+
+        var criado = await _servico.CriarAsync(request);
+
+        AplicacaoMetricas.CadastrosRealizados.Add(1,
+            new KeyValuePair<string, object?>("recurso", "animal"),
+            new KeyValuePair<string, object?>("status", "sucesso"));
+
+        _logger.LogInformation(
+            "Animal {AnimalId} ({Nome}) criado com sucesso para Responsavel {ResponsavelId}.",
+            criado.Id, criado.Name, criado.ResponsavelId);
+
+        return CreatedAtAction(nameof(GetById), new { id = criado.Id }, criado);
+    }
+
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> Update(int id, AtualizarAnimalRequest request)
+    {
+        await _servico.AtualizarAsync(id, request);
+
+        _logger.LogInformation("Animal {AnimalId} atualizado com sucesso.", id);
+
+        return NoContent();
+    }
+
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> Delete(int id)
+    {
+        await _servico.RemoverAsync(id);
+
+        _logger.LogInformation("Animal {AnimalId} removido com sucesso.", id);
+
+        return NoContent();
+    }
+
+    private Recurso<AnimalResponse> ComLinks(AnimalResponse animal)
+    {
+        var self = Url.Action(nameof(GetById), new { id = animal.Id })!;
+
+        return new Recurso<AnimalResponse>(animal,
+        [
+            new("self", self, "GET"),
+            new("update", self, "PUT"),
+            new("delete", self, "DELETE"),
+            new("responsavel", Url.Action("GetById", "Responsaveis", new { id = animal.ResponsavelId })!, "GET"),
+            new("care-events", Url.Action("GetAll", "CareEvents", new { animalId = animal.Id })!, "GET")
+        ]);
+    }
+}

@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="DotNet.Api.IntegrationTests/DotNet.Api.IntegrationTests.csproj" />
+  <Project Path="DotNet.Api.UnitTests/DotNet.Api.UnitTests.csproj" />
+  <Project Path="DotNet.Api/DotNet.Api.csproj" />
+  <Project Path="DotNet.Application/DotNet.Application.csproj" />
+  <Project Path="DotNet.Domain/DotNet.Domain.csproj" />
+  <Project Path="DotNet.Infrastructure/DotNet.Infrastructure.csproj" />
+</Solution>
