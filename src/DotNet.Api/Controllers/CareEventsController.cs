@@ -110,13 +110,21 @@ public class CareEventsController : ControllerBase
     {
         var self = Url.Action(nameof(GetById), new { id = careEvent.Id })!;
 
-        return new Recurso<CareEventResponse>(careEvent,
-        [
+        var links = new List<LinkHateoas>
+        {
             new("self", self, "GET"),
-            new("update", self, "PUT"),
-            new("complete", Url.Action(nameof(Complete), new { id = careEvent.Id })!, "PATCH"),
-            new("delete", self, "DELETE"),
-            new("animal", Url.Action("GetById", "Animais", new { id = careEvent.PetId })!, "GET")
-        ]);
+            new("update", self, "PUT")
+        };
+
+        // Só oferece "complete" quando a ação é possível: evento concluído ou cancelado não pode ser concluído.
+        if (careEvent.Status is not ("COMPLETED" or "CANCELED"))
+        {
+            links.Add(new("complete", Url.Action(nameof(Complete), new { id = careEvent.Id })!, "PATCH"));
+        }
+
+        links.Add(new("delete", self, "DELETE"));
+        links.Add(new("animal", Url.Action("GetById", "Animais", new { id = careEvent.PetId })!, "GET"));
+
+        return new Recurso<CareEventResponse>(careEvent, links);
     }
 }

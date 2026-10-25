@@ -53,15 +53,15 @@ public class Responsavel
     private static void ValidarDados(string name, string email, string phone, string cpf)
     {
         if (string.IsNullOrWhiteSpace(name))
-            throw new RegraDeNegocioException("Name is required.");
+            throw new RegraDeNegocioException("O nome é obrigatório.");
 
         if (string.IsNullOrWhiteSpace(email))
-            throw new RegraDeNegocioException("Email is required.");
+            throw new RegraDeNegocioException("O e-mail é obrigatório.");
 
         if (string.IsNullOrWhiteSpace(phone))
-            throw new RegraDeNegocioException("Phone is required.");
+            throw new RegraDeNegocioException("O telefone é obrigatório.");
 
         if (string.IsNullOrWhiteSpace(cpf))
-            throw new RegraDeNegocioException("Cpf is required.");
+            throw new RegraDeNegocioException("O CPF é obrigatório.");
     }
 }

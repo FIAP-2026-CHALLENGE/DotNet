@@ -42,7 +42,7 @@ public class ResponsavelServico : IResponsavelServico
 
         if (await _responsavelRepositorio.CpfExisteAsync(cpf))
         {
-            throw new RegraDeNegocioException("CPF already registered.");
+            throw new RegraDeNegocioException("CPF já cadastrado.");
         }
 
         var responsavel = Responsavel.Criar(name, email, phone, cpf);
@@ -61,7 +61,7 @@ public class ResponsavelServico : IResponsavelServico
 
         if (await _responsavelRepositorio.CpfExisteAsync(cpf, id))
         {
-            throw new RegraDeNegocioException("CPF already registered by another responsavel.");
+            throw new RegraDeNegocioException("CPF já cadastrado em outro responsável.");
         }
 
         responsavel.Atualizar(name, email, phone, cpf, isActive);

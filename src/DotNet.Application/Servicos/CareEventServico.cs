@@ -28,14 +28,14 @@ public class CareEventServico : ICareEventServico
 
         if (!string.IsNullOrEmpty(status) && !CareEvent.AllowedStatuses.Contains(status))
         {
-            throw new RegraDeNegocioException("Status must be PENDING, COMPLETED, OVERDUE or CANCELED.");
+            throw new RegraDeNegocioException("O status deve ser PENDING, COMPLETED, OVERDUE ou CANCELED.");
         }
 
         var type = filtro.Type?.Trim().ToUpper();
 
         if (!string.IsNullOrEmpty(type) && !CareEvent.AllowedTypes.Contains(type))
         {
-            throw new RegraDeNegocioException("Invalid care event type.");
+            throw new RegraDeNegocioException("Tipo de evento de cuidado inválido.");
         }
 
         var resultado = await _careEventRepositorio.ListarPaginadoAsync(
@@ -58,7 +58,7 @@ public class CareEventServico : ICareEventServico
 
         if (!await _animalRepositorio.ExisteAsync(petId))
         {
-            throw new RegraDeNegocioException("AnimalId does not exist.");
+            throw new RegraDeNegocioException("O animal informado não existe.");
         }
 
         var careEvent = CareEvent.Criar(petId, type, title, description, scheduledDate, completedDate, status, priority, notes);
@@ -77,7 +77,7 @@ public class CareEventServico : ICareEventServico
 
         if (!await _animalRepositorio.ExisteAsync(petId))
         {
-            throw new RegraDeNegocioException("AnimalId does not exist.");
+            throw new RegraDeNegocioException("O animal informado não existe.");
         }
 
         careEvent.Atualizar(petId, type, title, description, scheduledDate, completedDate, status, priority, notes, isActive);

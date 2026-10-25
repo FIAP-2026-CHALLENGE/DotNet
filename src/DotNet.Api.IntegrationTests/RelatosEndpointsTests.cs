@@ -19,33 +19,7 @@ public class RelatosEndpointsTests
         _client = factory.CriarClienteAutenticado();
     }
 
-    private async Task<int> CriarAnimalAsync()
-    {
-        var responsavel = await _client.PostAsJsonAsync("/api/responsaveis", new
-        {
-            name = "Paula Souza",
-            email = $"{Guid.NewGuid():N}@email.com",
-            phone = "11955554444",
-            cpf = Guid.NewGuid().ToString("N")[..11]
-        });
-        var responsavelCriado = await responsavel.Content.ReadFromJsonAsync<ResponsavelResponse>();
-
-        var animal = await _client.PostAsJsonAsync("/api/animais", new
-        {
-            responsavelId = responsavelCriado!.Id,
-            name = "Mel",
-            nickname = "Melzinha",
-            species = "CAT",
-            breed = "SRD",
-            birthDate = "2021-03-15T00:00:00",
-            weight = 4.2,
-            sex = "FEMALE",
-            rga = Guid.NewGuid().ToString("N")[..10]
-        });
-        var animalCriado = await animal.Content.ReadFromJsonAsync<AnimalResponse>();
-
-        return animalCriado!.Id;
-    }
+    private Task<int> CriarAnimalAsync() => CenariosDeTeste.CriarAnimalAsync(_client);
 
     [Fact]
     public async Task FluxoCompleto_CriarConsultarAtualizarERemoverRelato_DeveRespeitarOsStatusHttp()
