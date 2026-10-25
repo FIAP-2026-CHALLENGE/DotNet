@@ -2,11 +2,13 @@ using DotNet.Api.Aplicacao.Middlewares;
 using DotNet.Api.Infraestrutura.Observabilidade;
 using DotNet.Application;
 using DotNet.Infrastructure;
+using DotNet.Infrastructure.Health;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.OpenApi;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Serilog;
-using Microsoft.OpenApi;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -18,7 +20,6 @@ try
 {
     var builder = WebApplication.CreateBuilder(args);
 
-    
     builder.Host.UseSerilog((context, services, configuration) => configuration
         .MinimumLevel.Information()
         .Enrich.FromLogContext()
@@ -29,10 +30,8 @@ try
             rollingInterval: RollingInterval.Day,
             outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] ({CorrelationId}) {Message:lj}{NewLine}{Exception}"));
 
-    
     builder.Services.AddControllers();
 
-   
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(options =>
     {
@@ -52,7 +51,6 @@ try
 
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddApplication();
-    
 
     builder.Services.AddOpenTelemetry()
         .ConfigureResource(resource => resource.AddService(AplicacaoMetricas.NomeServico))
@@ -68,14 +66,12 @@ try
 
     var app = builder.Build();
 
-    
     if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Habilitado"))
     {
         app.UseSwagger();
         app.UseSwaggerUI();
     }
 
-    
     app.UseMiddleware<CorrelationIdMiddleware>();
     app.UseSerilogRequestLogging();
 
@@ -86,8 +82,16 @@ try
 
     app.MapControllers();
 
-    
-    app.MapHealthChecks("/health");
+    // /health checa só o Oracle (usado pelo pipeline de Cloud); o Mongo tem rota própria.
+    app.MapHealthChecks("/health", new HealthCheckOptions
+    {
+        Predicate = check => !check.Tags.Contains(MongoHealthCheck.Tag)
+    });
+
+    app.MapHealthChecks("/health/mongo", new HealthCheckOptions
+    {
+        Predicate = check => check.Tags.Contains(MongoHealthCheck.Tag)
+    });
 
     app.Run();
 }

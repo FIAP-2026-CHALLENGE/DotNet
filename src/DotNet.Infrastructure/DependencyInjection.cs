@@ -42,7 +42,8 @@ public static class DependencyInjection
 
         services
             .AddHealthChecks()
-            .AddCheck<OracleHealthCheck>("oracle_database");
+            .AddCheck<OracleHealthCheck>("oracle_database")
+            .AddCheck<MongoHealthCheck>("mongodb", tags: [MongoHealthCheck.Tag]);
 
         services.Configure<JwtOpcoes>(configuration.GetSection(JwtOpcoes.Secao));
         services.Configure<CredenciaisAdminOpcoes>(configuration.GetSection(CredenciaisAdminOpcoes.Secao));
