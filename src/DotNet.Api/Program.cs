@@ -1,3 +1,4 @@
+using DotNet.Api.Aplicacao;
 using DotNet.Api.Aplicacao.Middlewares;
 using DotNet.Api.Infraestrutura.Observabilidade;
 using DotNet.Application;
@@ -35,6 +36,13 @@ try
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(options =>
     {
+        options.SwaggerDoc("v1", new OpenApiInfo
+        {
+            Title = InformacoesApi.Nome,
+            Version = InformacoesApi.Versao,
+            Description = InformacoesApi.Descricao
+        });
+
         options.AddSecurityDefinition("bearer", new OpenApiSecurityScheme
         {
             Type = SecuritySchemeType.Http,
