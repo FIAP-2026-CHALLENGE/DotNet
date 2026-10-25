@@ -1,8 +1,10 @@
-﻿using DotNet.Infrastructure.Data;
+﻿using DotNet.Domain.Repositorios;
+using DotNet.Infrastructure.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Net.Http.Headers;
 using DotNet.Application.Dtos;
 using DotNet.Application.Servicos;
@@ -63,6 +65,10 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             {
                 options.UseInMemoryDatabase(_databaseName);
             });
+
+            // Troca o repositório do MongoDB por um falso em memória: os testes não dependem do Mongo.
+            services.RemoveAll<IRelatoTutorRepositorio>();
+            services.AddSingleton<IRelatoTutorRepositorio, RelatoTutorRepositorioEmMemoria>();
         });
     }
 }
