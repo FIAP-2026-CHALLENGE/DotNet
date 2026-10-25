@@ -86,7 +86,7 @@ public class CareEvent
     {
         if (Status == "CANCELED")
         {
-            throw new RegraDeNegocioException("Canceled events cannot be completed.");
+            throw new RegraDeNegocioException("Eventos cancelados não podem ser concluídos.");
         }
 
         Status = "COMPLETED";
@@ -99,7 +99,7 @@ public class CareEvent
         if (petId <= 0 || string.IsNullOrWhiteSpace(type) || string.IsNullOrWhiteSpace(title) ||
             string.IsNullOrWhiteSpace(status) || string.IsNullOrWhiteSpace(priority))
         {
-            throw new RegraDeNegocioException("AnimalId, type, title, status and priority are required.");
+            throw new RegraDeNegocioException("AnimalId, tipo, título, status e prioridade são obrigatórios.");
         }
 
         var normalizedType = type.Trim().ToUpper();
@@ -107,16 +107,16 @@ public class CareEvent
         var normalizedPriority = priority.Trim().ToUpper();
 
         if (!AllowedTypes.Contains(normalizedType))
-            throw new RegraDeNegocioException("Type must be VACCINE, DEWORMING, MEDICATION, CHECKUP, RETURN, EXAM, GROOMING, SURGERY or OTHER.");
+            throw new RegraDeNegocioException("O tipo deve ser VACCINE, DEWORMING, MEDICATION, CHECKUP, RETURN, EXAM, GROOMING, SURGERY ou OTHER.");
 
         if (!AllowedStatuses.Contains(normalizedStatus))
-            throw new RegraDeNegocioException("Status must be PENDING, COMPLETED, OVERDUE or CANCELED.");
+            throw new RegraDeNegocioException("O status deve ser PENDING, COMPLETED, OVERDUE ou CANCELED.");
 
         if (!AllowedPriorities.Contains(normalizedPriority))
-            throw new RegraDeNegocioException("Priority must be LOW, MEDIUM, HIGH or CRITICAL.");
+            throw new RegraDeNegocioException("A prioridade deve ser LOW, MEDIUM, HIGH ou CRITICAL.");
 
         if (scheduledDate == default)
-            throw new RegraDeNegocioException("ScheduledDate is required.");
+            throw new RegraDeNegocioException("A data agendada é obrigatória.");
 
         return (normalizedType, normalizedStatus, normalizedPriority);
     }

@@ -97,14 +97,14 @@ public class Animal
             string.IsNullOrWhiteSpace(sex) ||
             weight <= 0)
         {
-            throw new RegraDeNegocioException("ResponsavelId, name, species, breed, sex and valid weight are required.");
+            throw new RegraDeNegocioException("ResponsavelId, nome, espécie, raça, sexo e peso válido são obrigatórios.");
         }
 
         var normalizedSpecies = species.Trim().ToUpper();
 
         if (!AllowedSpecies.Contains(normalizedSpecies))
         {
-            throw new RegraDeNegocioException("Species must be DOG or CAT in this MVP version.");
+            throw new RegraDeNegocioException("A espécie deve ser DOG ou CAT nesta versão do MVP.");
         }
 
         return normalizedSpecies;

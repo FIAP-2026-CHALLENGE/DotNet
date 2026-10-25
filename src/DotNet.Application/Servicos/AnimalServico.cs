@@ -49,12 +49,12 @@ public class AnimalServico : IAnimalServico
 
         if (!await _responsavelRepositorio.ExisteAsync(responsavelId))
         {
-            throw new RegraDeNegocioException("ResponsavelId does not exist.");
+            throw new RegraDeNegocioException("O responsável informado não existe.");
         }
 
         if (await _animalRepositorio.RgaExisteAsync(rga))
         {
-            throw new RegraDeNegocioException("RGA already registered.");
+            throw new RegraDeNegocioException("RGA já cadastrado.");
         }
 
         var animal = Animal.Criar(responsavelId, name, nickname, species, breed, birthDate, weight, sex, rga);
@@ -73,12 +73,12 @@ public class AnimalServico : IAnimalServico
 
         if (!await _responsavelRepositorio.ExisteAsync(responsavelId))
         {
-            throw new RegraDeNegocioException("ResponsavelId does not exist.");
+            throw new RegraDeNegocioException("O responsável informado não existe.");
         }
 
         if (await _animalRepositorio.RgaExisteAsync(rga, id))
         {
-            throw new RegraDeNegocioException("RGA already registered by another animal.");
+            throw new RegraDeNegocioException("RGA já cadastrado em outro animal.");
         }
 
         animal.Atualizar(responsavelId, name, nickname, species, breed, birthDate, weight, sex, rga, isActive);
