@@ -10,6 +10,7 @@ public static class DependencyInjection
         services.AddScoped<IResponsavelServico, ResponsavelServico>();
         services.AddScoped<IAnimalServico, AnimalServico>();
         services.AddScoped<ICareEventServico, CareEventServico>();
+        services.AddScoped<IRelatoTutorServico, RelatoTutorServico>();
 
         return services;
     }
