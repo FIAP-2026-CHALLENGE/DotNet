@@ -15,3 +15,7 @@ public record FiltroCareEvent(
 public record FiltroResponsavel(
     string? Nome = null,
     bool? Ativo = null);
+
+public record FiltroRelatoTutor(
+    int? AnimalId = null,
+    string? Sintoma = null);
